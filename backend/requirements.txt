@@ -30,3 +30,4 @@ sendgrid
 dnspython
 cryptography
 pydantic[email]
+psutil
