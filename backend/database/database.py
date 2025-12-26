@@ -8,13 +8,23 @@ from dotenv import load_dotenv
 load_dotenv()
 
 # MySQL Configuration
-MYSQL_USER = os.getenv("MYSQL_USER", "root")
-MYSQL_PASSWORD = os.getenv("MYSQL_PASSWORD", "Kubendra%402004")
-MYSQL_HOST = os.getenv("MYSQL_HOST", "localhost")
-MYSQL_PORT = os.getenv("MYSQL_PORT", "3306")
-MYSQL_DB = os.getenv("MYSQL_DB", "health_app")
+# Check for full URL first (preferred for Cloud/Render)
+MYSQL_URL = os.getenv("MYSQL_URL")
 
-SQLALCHEMY_DATABASE_URL = f"mysql+pymysql://{MYSQL_USER}:{MYSQL_PASSWORD}@{MYSQL_HOST}:{MYSQL_PORT}/{MYSQL_DB}"
+if not MYSQL_URL:
+    # Fallback to local keys if full URL not provided
+    MYSQL_USER = os.getenv("MYSQL_USER", "root")
+    MYSQL_PASSWORD = os.getenv("MYSQL_PASSWORD", "Kubendra%402004")
+    MYSQL_HOST = os.getenv("MYSQL_HOST", "localhost")
+    MYSQL_PORT = os.getenv("MYSQL_PORT", "3306")
+    MYSQL_DB = os.getenv("MYSQL_DB", "health_app")
+    SQLALCHEMY_DATABASE_URL = f"mysql+pymysql://{MYSQL_USER}:{MYSQL_PASSWORD}@{MYSQL_HOST}:{MYSQL_PORT}/{MYSQL_DB}"
+else:
+    SQLALCHEMY_DATABASE_URL = MYSQL_URL
+
+# Ensure pymysql is used
+if SQLALCHEMY_DATABASE_URL.startswith("mysql://"):
+    SQLALCHEMY_DATABASE_URL = SQLALCHEMY_DATABASE_URL.replace("mysql://", "mysql+pymysql://")
 
 engine = create_engine(SQLALCHEMY_DATABASE_URL)
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
