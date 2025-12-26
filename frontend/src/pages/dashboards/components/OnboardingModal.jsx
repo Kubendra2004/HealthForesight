@@ -117,7 +117,7 @@ export default function OnboardingModal({ open, onClose, user, onComplete }) {
 
       try {
           await axios.post(
-            "http://localhost:8000/ml/predict/heart",
+            `${import.meta.env.VITE_API_URL}/ml/predict/heart`,
             heartPayload,
             { headers }
           );
@@ -153,7 +153,7 @@ export default function OnboardingModal({ open, onClose, user, onComplete }) {
 
       try {
           await axios.post(
-            "http://localhost:8000/ml/predict/diabetes",
+            `${import.meta.env.VITE_API_URL}/ml/predict/diabetes`,
             diabetesPayload,
             { headers }
           );
@@ -176,7 +176,7 @@ export default function OnboardingModal({ open, onClose, user, onComplete }) {
       });
 
       await axios.post(
-          "http://localhost:8000/portal/profile",
+          `${import.meta.env.VITE_API_URL}/portal/profile`,
           profilePayload,
           { headers }
       );

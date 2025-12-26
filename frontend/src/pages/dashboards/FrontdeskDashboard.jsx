@@ -170,14 +170,14 @@ const FrontdeskDashboard = () => {
     
     try {
       const [apptsRes, doctorsRes, resourcesRes, bedsRes, waitlistRes, inventoryRes, billsRes, statsRes] = await Promise.all([
-        fetch('http://localhost:8000/frontdesk/appointments', { headers }),
-        fetch('http://localhost:8000/auth/users?role=doctor', { headers }),
-        fetch('http://localhost:8000/resources/current', { headers }),
-        fetch('http://localhost:8000/beds', { headers }),
-        fetch('http://localhost:8000/operations/waitlist', { headers }),
-        fetch('http://localhost:8000/operations/inventory', { headers }),
-        fetch('http://localhost:8000/billing', { headers }),
-        fetch('http://localhost:8000/operations/stats', { headers })
+        fetch(`${import.meta.env.VITE_API_URL}/frontdesk/appointments`, { headers }),
+        fetch(`${import.meta.env.VITE_API_URL}/auth/users?role=doctor`, { headers }),
+        fetch(`${import.meta.env.VITE_API_URL}/resources/current`, { headers }),
+        fetch(`${import.meta.env.VITE_API_URL}/beds`, { headers }),
+        fetch(`${import.meta.env.VITE_API_URL}/operations/waitlist`, { headers }),
+        fetch(`${import.meta.env.VITE_API_URL}/operations/inventory`, { headers }),
+        fetch(`${import.meta.env.VITE_API_URL}/billing`, { headers }),
+        fetch(`${import.meta.env.VITE_API_URL}/operations/stats`, { headers })
       ]);
 
       if (apptsRes.ok) setAppointments(await apptsRes.json());
@@ -280,7 +280,7 @@ const FrontdeskDashboard = () => {
         if (processingBill) {
             let billId = processingBill._id;
             // 1. Update Bill Details
-            const updateRes = await fetch(`http://localhost:8000/billing/${billId}`, {
+            const updateRes = await fetch(`${import.meta.env.VITE_API_URL}/billing/${billId}`, {
                 method: 'PUT',
                 headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
                 body: JSON.stringify(payload)
@@ -289,7 +289,7 @@ const FrontdeskDashboard = () => {
             if (!updateRes.ok) throw new Error('Failed to update bill');
 
             // 2. Process Payment immediately
-            const payRes = await fetch(`http://localhost:8000/billing/${billId}/pay`, {
+            const payRes = await fetch(`${import.meta.env.VITE_API_URL}/billing/${billId}/pay`, {
                 method: 'POST',
                 headers: { 'Authorization': `Bearer ${token}` }
             });
@@ -299,7 +299,7 @@ const FrontdeskDashboard = () => {
 
         } else {
             // Create New Bill
-            const res = await fetch('http://localhost:8000/frontdesk/bills', {
+            const res = await fetch(`${import.meta.env.VITE_API_URL}/frontdesk/bills`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
                 body: JSON.stringify({
@@ -325,7 +325,7 @@ const FrontdeskDashboard = () => {
   const handleAllocateBed = async () => {
     try {
       // If we selected a bed via 3D view, bedForm.bed_id should be set
-      const res = await fetch('http://localhost:8000/beds/allocate', {
+      const res = await fetch(`${import.meta.env.VITE_API_URL}/beds/allocate`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
         body: JSON.stringify({ bed_id: bedForm.bed_id, patient_id: bedForm.patient_id })
@@ -345,7 +345,7 @@ const FrontdeskDashboard = () => {
 
   const handleDeallocateBed = async (bedId) => {
     try {
-       const res = await fetch('http://localhost:8000/beds/deallocate', {
+       const res = await fetch(`${import.meta.env.VITE_API_URL}/beds/deallocate`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
         body: JSON.stringify({ bed_id: bedId })

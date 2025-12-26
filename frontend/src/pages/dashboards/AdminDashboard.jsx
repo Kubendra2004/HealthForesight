@@ -160,7 +160,7 @@ const OverviewSection = ({ setActive }) => {
   useEffect(() => {
     const fetchStats = async () => {
       try {
-        const res = await fetch("http://localhost:8000/admin/overview-stats", {
+        const res = await fetch(`${import.meta.env.VITE_API_URL}/admin/overview-stats`, {
             headers: { Authorization: `Bearer ${localStorage.getItem("token")}` }
         });
         if (res.ok) {
@@ -308,7 +308,7 @@ const UserManagementSection = () => {
         else if (tabValue === 2) roleFilter = "&role=doctor";
         else if (tabValue === 3) roleFilter = "&role=staff";
         
-        const url = `http://localhost:8000/admin/export/${type}?format=${format}${roleFilter}`;
+        const url = `${import.meta.env.VITE_API_URL}/admin/export/${type}?format=${format}${roleFilter}`;
         
         fetch(url, {
             headers: { Authorization: `Bearer ${token}` }
@@ -357,7 +357,7 @@ const UserManagementSection = () => {
 
     const handleEditSave = async () => {
         try {
-            const res = await fetch(`http://localhost:8000/admin/users/${currentUser.id}`, {
+            const res = await fetch(`${import.meta.env.VITE_API_URL}/admin/users/${currentUser.id}`, {
                 method: "PUT",
                 headers: { 
                     "Content-Type": "application/json",
@@ -511,7 +511,7 @@ const AuditLogsSection = () => {
     const [logs, setLogs] = useState([]);
     
     useEffect(() => {
-        fetch("http://localhost:8000/admin/audit/logs", {
+        fetch(`${import.meta.env.VITE_API_URL}/admin/audit/logs`, {
             headers: { Authorization: `Bearer ${localStorage.getItem("token")}` }
         })
         .then(res => res.ok ? res.json() : [])
@@ -582,7 +582,7 @@ const ReportsSection = () => {
     const [models, setModels] = useState([]);
 
     useEffect(() => {
-        fetch("http://localhost:8000/admin/models/stats", {
+        fetch(`${import.meta.env.VITE_API_URL}/admin/models/stats`, {
             headers: { Authorization: `Bearer ${localStorage.getItem("token")}` }
         })
         .then(res => res.json())
@@ -599,7 +599,7 @@ const ReportsSection = () => {
 
     const handleRetrain = async () => {
         try {
-            await fetch("http://localhost:8000/admin/models/retrain?model_name=heart", { 
+            await fetch(`${import.meta.env.VITE_API_URL}/admin/models/retrain?model_name=heart`, { 
                 method: "POST",
                 headers: { Authorization: `Bearer ${localStorage.getItem("token")}` }
             });
@@ -667,7 +667,7 @@ const ResourcesSection = () => {
     useEffect(() => {
         const fetchForecast = async () => {
             try {
-                const res = await fetch("http://localhost:8000/ml/predict/resources?days=7", {
+                const res = await fetch(`${import.meta.env.VITE_API_URL}/ml/predict/resources?days=7`, {
                     headers: { Authorization: `Bearer ${localStorage.getItem("token")}` }
                 });
                 if (res.ok) {

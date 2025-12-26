@@ -64,7 +64,7 @@ export default function PatientDashboard() {
         type: formData.type, // 'video' or 'in-person'
       };
 
-      const res = await fetch("http://localhost:8000/frontdesk/appointments", {
+      const res = await fetch(`${import.meta.env.VITE_API_URL}/frontdesk/appointments`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(appointmentData),
@@ -74,7 +74,7 @@ export default function PatientDashboard() {
         alert("Appointment requested successfully!");
         // Refresh appointments
         const updated = await fetch(
-          `http://localhost:8000/frontdesk/appointments?patient_id=${patientId}`
+          `${import.meta.env.VITE_API_URL}/frontdesk/appointments?patient_id=${patientId}`
         );
         if (updated.ok) setAppointments(await updated.json());
       }
@@ -89,7 +89,7 @@ export default function PatientDashboard() {
     try {
        const token = localStorage.getItem("token");
        const res = await axios.post(
-         "http://localhost:8000/reports/generate", 
+         `${import.meta.env.VITE_API_URL}/reports/generate`, 
          {}, 
          { 
            headers: { Authorization: `Bearer ${token}` },
@@ -146,7 +146,7 @@ export default function PatientDashboard() {
       const form = new FormData();
       form.append("file", selectedFile);
       form.append("patient_id", patientId);
-      await fetch("http://localhost:8000/files/upload", {
+      await fetch(`${import.meta.env.VITE_API_URL}/files/upload`, {
         method: "POST",
         body: form,
       });
@@ -169,7 +169,7 @@ export default function PatientDashboard() {
       if (!user?.username) return;
 
       try {
-        const res = await fetch(`http://localhost:8000/portal/profile`, {
+        const res = await fetch(`${import.meta.env.VITE_API_URL}/portal/profile`, {
           headers: {
             Authorization: `Bearer ${localStorage.getItem("token")}`,
           },

@@ -73,7 +73,7 @@ const PrescriptionsTab = ({ patients, token, user }) => {
     useEffect(() => {
         const fetchMeds = async () => {
             try {
-                const res = await fetch(`http://localhost:8000/doctor/search_medicines?q=`, {
+                const res = await fetch(`${import.meta.env.VITE_API_URL}/doctor/search_medicines?q=`, {
                     headers: { 'Authorization': `Bearer ${token}` }
                 });
                 if (res.ok) {
@@ -93,7 +93,7 @@ const PrescriptionsTab = ({ patients, token, user }) => {
                 return;
             }
             try {
-                const res = await fetch(`http://localhost:8000/doctor/search_patients?q=${patientQuery}`, {
+                const res = await fetch(`${import.meta.env.VITE_API_URL}/doctor/search_patients?q=${patientQuery}`, {
                     headers: { 'Authorization': `Bearer ${token}` }
                 });
                 if (res.status === 401) {
