@@ -1,0 +1,22 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+venv/
+.env
+
+# Logs
+*.log
+backend/logs/
+
+# Chroma DB (Vector Store)
+backend/chroma_db/
+
+# Node
+node_modules/
+dist/
+.DS_Store
+
+# Editors
+.vscode/
+.idea/

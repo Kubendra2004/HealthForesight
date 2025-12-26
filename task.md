@@ -1,0 +1,8 @@
+- [x] Analyze `Heart_disease_cleveland_new.csv` <!-- id: 0 -->
+- [x] Create `train_heart_model.py` <!-- id: 1 -->
+- [x] Create `test_heart_model.py` <!-- id: 2 -->
+- [x] Verify Heart Disease model <!-- id: 3 -->
+- [x] Analyze `resources_ai.csv` <!-- id: 4 -->
+- [x] Create `train_resource_model.py` (Prophet) <!-- id: 5 -->
+- [x] Create `test_resource_model.py` <!-- id: 6 -->
+- [x] Verify Resource Forecast model <!-- id: 7 -->

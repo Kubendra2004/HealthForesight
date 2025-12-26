@@ -1,0 +1,15 @@
+fastapi
+uvicorn
+sqlalchemy
+pymysql
+motor
+python-dotenv
+pandas
+numpy
+scikit-learn
+lightgbm
+joblib
+prophet
+passlib[bcrypt]
+python-jose[cryptography]
+python-multipart
