@@ -31,3 +31,5 @@ dnspython
 cryptography
 pydantic[email]
 psutil
+kagglehub
+scipy
