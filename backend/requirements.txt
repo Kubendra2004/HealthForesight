@@ -1,0 +1,35 @@
+fastapi
+uvicorn
+sqlalchemy
+pymysql
+motor
+python-dotenv
+pandas
+numpy
+scikit-learn
+lightgbm
+joblib
+prophet
+passlib[bcrypt]
+python-jose[cryptography]
+python-multipart
+# AI & ML
+google-generativeai
+chromadb
+sentence-transformers
+shap
+matplotlib
+# PDF & Reports
+PyPDF2
+pypdf
+reportlab
+# Monitoring & Utils
+prometheus-client
+requests
+sendgrid
+dnspython
+cryptography
+pydantic[email]
+psutil
+kagglehub
+scipy

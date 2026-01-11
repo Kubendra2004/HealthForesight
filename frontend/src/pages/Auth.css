@@ -1,0 +1,329 @@
+/* ===== BALANCED AUTH PAGES STYLES ===== */
+.auth-page {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  overflow: hidden;
+  padding: 1.5rem;
+}
+
+.auth-particles {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  z-index: 0;
+}
+
+/* Centered container for auth forms */
+.auth-container-centered {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  max-width: 500px;
+  width: 100%;
+  position: relative;
+  z-index: 1;
+}
+
+/* ===== FORM CARD ===== */
+.auth-form-container {
+  width: 100%;
+  padding: 2.5rem 3rem;
+  background: white;
+  border-radius: 24px;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.12);
+  border: 1px solid rgba(0, 0, 0, 0.06);
+}
+
+.auth-form {
+  width: 100%;
+}
+
+.form-header {
+  margin-bottom: 2rem;
+  text-align: center;
+}
+
+.brand-logo-small {
+  margin-bottom: 1.25rem;
+  display: flex;
+  justify-content: center;
+}
+
+.brand-logo-small svg {
+  filter: drop-shadow(0 4px 8px rgba(37, 99, 235, 0.2));
+  animation: heartbeat 2s ease infinite;
+}
+
+@keyframes heartbeat {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.05); }
+}
+
+.form-header h2 {
+  font-size: 1.875rem;
+  font-weight: 800;
+  margin-bottom: 0.5rem;
+  color: var(--text-primary);
+  letter-spacing: -0.01em;
+}
+
+.form-header p {
+  color: var(--text-secondary);
+  font-size: 1rem;
+  line-height: 1.5;
+}
+
+.form-group {
+  margin-bottom: 1.25rem;
+  position: relative;
+}
+
+/* Enhanced Material-UI TextField styling */
+.form-group .MuiTextField-root,
+.form-group .MuiFormControl-root {
+  transition: all 0.3s ease;
+}
+
+.form-group .MuiOutlinedInput-root {
+  border-radius: 12px;
+  background: rgba(248, 250, 252, 0.8);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.form-group .MuiOutlinedInput-input {
+  padding: 14px 14px;
+}
+
+.form-group .MuiOutlinedInput-root:hover {
+  background: rgba(248, 250, 252, 1);
+  transform: translateY(-1px);
+}
+
+.form-group .MuiOutlinedInput-root.Mui-focused {
+  background: white;
+  box-shadow: 0 4px 12px rgba(37, 99, 235, 0.12);
+  transform: translateY(-1px);
+}
+
+.form-group .MuiOutlinedInput-notchedOutline {
+  border-color: rgba(148, 163, 184, 0.3);
+  transition: all 0.3s ease;
+}
+
+.form-group .MuiOutlinedInput-root:hover .MuiOutlinedInput-notchedOutline {
+  border-color: rgba(37, 99, 235, 0.4);
+}
+
+.form-group .MuiOutlinedInput-root.Mui-focused .MuiOutlinedInput-notchedOutline {
+  border-color: #2563eb;
+  border-width: 2px;
+}
+
+/* Select dropdown styling */
+.form-group .MuiSelect-select {
+  border-radius: 12px;
+}
+
+.form-footer {
+  display: flex;
+  justify-content: flex-end;
+  margin-bottom: 1rem;
+  margin-top: -0.25rem;
+}
+
+.forgot-link {
+  color: var(--primary-gradient-start);
+  text-decoration: none;
+  font-size: 0.875rem;
+  font-weight: 600;
+  transition: all 0.2s ease;
+  position: relative;
+}
+
+.forgot-link::after {
+  content: '';
+  position: absolute;
+  bottom: -2px;
+  left: 0;
+  width: 0;
+  height: 2px;
+  background: var(--primary-gradient-start);
+  transition: width 0.3s ease;
+}
+
+.forgot-link:hover::after {
+  width: 100%;
+}
+
+.forgot-link:hover {
+  color: var(--primary-gradient-end);
+}
+
+/* Enhanced Button Styling */
+.auth-form .MuiButton-root {
+  border-radius: 12px;
+  text-transform: none;
+  font-weight: 600;
+  font-size: 1rem;
+  box-shadow: 0 4px 16px rgba(37, 99, 235, 0.3);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  position: relative;
+  overflow: hidden;
+}
+
+.auth-form .MuiButton-root::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+  transition: left 0.5s ease;
+}
+
+.auth-form .MuiButton-root:hover::before {
+  left: 100%;
+}
+
+.auth-form .MuiButton-root:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 24px rgba(37, 99, 235, 0.4);
+}
+
+.auth-form .MuiButton-root:active {
+  transform: translateY(0);
+}
+
+.signup-link {
+  text-align: center;
+  color: var(--text-secondary);
+  font-size: 0.9375rem;
+  margin-top: 1.75rem;
+  padding-top: 1.75rem;
+  border-top: 1px solid rgba(0, 0, 0, 0.08);
+}
+
+.signup-link a {
+  color: var(--primary-gradient-start);
+  text-decoration: none;
+  font-weight: 700;
+  transition: all 0.2s ease;
+  position: relative;
+}
+
+.signup-link a::after {
+  content: '';
+  position: absolute;
+  bottom: -2px;
+  left: 0;
+  width: 0;
+  height: 2px;
+  background: var(--primary-gradient-start);
+  transition: width 0.3s ease;
+}
+
+.signup-link a:hover::after {
+  width: 100%;
+}
+
+.signup-link a:hover {
+  color: var(--primary-gradient-end);
+}
+
+.back-home {
+  text-align: center;
+  margin-top: 1.25rem;
+}
+
+.back-home a {
+  color: var(--text-muted);
+  text-decoration: none;
+  font-size: 0.875rem;
+  transition: all 0.2s ease;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-weight: 500;
+}
+
+.back-home a:hover {
+  color: var(--text-secondary);
+  transform: translateX(-4px);
+}
+
+/* Alert Enhancement */
+.MuiAlert-root {
+  border-radius: 12px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+}
+
+/* ===== RESPONSIVE ===== */
+@media (max-width: 640px) {
+  .auth-form-container {
+    padding: 2rem 2.5rem;
+    border-radius: 20px;
+  }
+
+  .form-header h2 {
+    font-size: 1.75rem;
+  }
+
+  .form-header {
+    margin-bottom: 1.75rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .auth-page {
+    padding: 1rem;
+  }
+
+  .auth-form-container {
+    padding: 1.75rem 2rem;
+  }
+
+  .form-header h2 {
+    font-size: 1.625rem;
+  }
+}
+
+/* Minor adjustments for shorter screens while maintaining aesthetics */
+@media (max-height: 750px) {
+  .auth-form-container {
+    padding: 2rem 2.5rem;
+  }
+  
+  .form-header {
+    margin-bottom: 1.5rem;
+  }
+  
+  .form-group {
+    margin-bottom: 1rem;
+  }
+  
+  .signup-link {
+    margin-top: 1.5rem;
+    padding-top: 1.5rem;
+  }
+}
+
+@media (max-height: 650px) {
+  .form-header {
+    margin-bottom: 1.25rem;
+  }
+  
+  .brand-logo-small {
+    margin-bottom: 1rem;
+  }
+  
+  .brand-logo-small svg {
+    font-size: 2rem !important;
+  }
+}

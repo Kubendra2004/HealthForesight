@@ -1,0 +1,19 @@
+HOSPITAL PROTOCOL: CHEST PAIN TRIAGE
+1. Immediate Assessment: Check vitals (BP, HR, O2 Sat). Perform ECG within 10 minutes.
+2. High Risk Criteria: ST elevation, new LBBB, severe chest pain radiating to arm/jaw.
+3. Action for High Risk: Activate STEMI code. Administer Aspirin 300mg (chewed) unless contraindicated.
+4. Low Risk: Monitor troponin levels at 0h and 3h.
+
+HOSPITAL PROTOCOL: DIABETES MANAGEMENT (INPATIENT)
+1. Target Glucose: 140-180 mg/dL for most critically ill patients.
+2. Hypoglycemia (<70 mg/dL): Stop insulin. Administer 25ml of 50% Dextrose IV. Recheck in 15 mins.
+3. Hyperglycemia (>180 mg/dL): Start sliding scale insulin.
+
+HOSPITAL PROTOCOL: SEPSIS
+1. Sepsis Six Bundle (within 1 hour):
+   - Give high-flow oxygen.
+   - Take blood cultures.
+   - Give IV antibiotics.
+   - Give IV fluid challenge.
+   - Measure lactate.
+   - Measure urine output.
