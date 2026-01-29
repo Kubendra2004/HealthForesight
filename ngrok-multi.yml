@@ -1,9 +1,0 @@
-version: "2"
-authtoken: 37OSdO6Qd5I2t2QnHnM2xHtQNxp_6BHGmGFX5yXeX5LNmCVQw
-tunnels:
-  my-api:
-    proto: http
-    addr: 8000
-  my-ui:
-    proto: http
-    addr: 5173
