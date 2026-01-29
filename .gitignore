@@ -20,3 +20,9 @@ dist/
 # Editors
 .vscode/
 .idea/
+
+# Markdown files (except specific ones)
+*.md
+!README.md
+!api_endpoints.md
+!model_performance.md
