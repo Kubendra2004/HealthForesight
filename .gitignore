@@ -26,3 +26,7 @@ dist/
 !README.md
 !api_endpoints.md
 !model_performance.md
+
+#exe
+cloudflared.exe
+ngrok_multi.yml
