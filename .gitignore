@@ -8,6 +8,8 @@ venv/
 # Logs
 *.log
 backend/logs/
+backend/uploads/
+backend/*.db
 
 # Chroma DB (Vector Store)
 backend/chroma_db/
@@ -29,4 +31,4 @@ dist/
 
 #exe
 cloudflared.exe
-ngrok_multi.yml
+ngrok-multi.yml

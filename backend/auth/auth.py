@@ -10,7 +10,7 @@ from database.models_sql import User
 import os
 
 # Secret key for JWT encoding/decoding
-SECRET_KEY = os.getenv("SECRET_KEY", "8d0fc742594b48d1a3ce72a106849fccd00eb8b547ca0905b060d5456ab9ec2d")
+SECRET_KEY = os.getenv("SECRET_KEY", "change-me-in-env")
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 40
 
