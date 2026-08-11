@@ -18,7 +18,7 @@
     "@mui/material": "^7.3.6",
     "@react-three/drei": "^10.7.7",
     "@react-three/fiber": "^9.4.2",
-    "axios": "^1.13.2",
+    "axios": "^1.14.0",
     "chart.js": "^4.5.1",
     "framer-motion": "^12.23.25",
     "react": "^19.2.0",

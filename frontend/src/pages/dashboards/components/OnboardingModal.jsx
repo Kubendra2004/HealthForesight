@@ -83,7 +83,7 @@ export default function OnboardingModal({ open, onClose, user, onComplete }) {
              const profile = res.data;
              const merged = { ...formData };
              Object.keys(profile).forEach(key => {
-                 if(merged.hasOwnProperty(key)) {
+               if (Object.prototype.hasOwnProperty.call(merged, key)) {
                      merged[key] = String(profile[key] ?? ""); 
                  }
              });

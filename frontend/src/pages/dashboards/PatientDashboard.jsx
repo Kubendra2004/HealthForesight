@@ -1243,10 +1243,6 @@ function ProfileSection({ user, onSignOut }) {
           const data = await res.json();
           setProfileData(data); // Set full profile data
           setShowOnboardingPrompt(false); // Valid profile found -> Hide prompt
-          setHealthMetrics({ // Keep legacy check if needed
-              age: data.age,
-              bmi: (data.weight / (data.height / 100) ** 2).toFixed(1)
-          });
         } else {
           setShowOnboardingPrompt(true);
         }

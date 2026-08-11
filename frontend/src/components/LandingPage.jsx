@@ -1,7 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
 import { useInView } from 'react-intersection-observer';
-import { useNavigate } from 'react-router-dom';
 import {
   Psychology,
   MonitorHeart,
@@ -20,21 +19,25 @@ import {
 } from '@mui/icons-material';
 import './LandingPage.css';
 
-const LandingPage = () => {
-  const [particles, setParticles] = useState([]);
+const createParticles = (count = 50) => {
+  const particleArray = [];
+  for (let i = 0; i < count; i++) {
+    particleArray.push({
+      id: i,
+      left: Math.random() * 100 + '%',
+      animationDelay: Math.random() * 20 + 's',
+      animationDuration: (Math.random() * 10 + 10) + 's'
+    });
+  }
+  return particleArray;
+};
 
-  // Generate particles on mount
+const LandingPage = () => {
+  const [particles] = useState(() => createParticles(50));
+
+  // Scroll to top on mount
   useEffect(() => {
-    const particleArray = [];
-    for (let i = 0; i < 50; i++) {
-      particleArray.push({
-        id: i,
-        left: Math.random() * 100 + '%',
-        animationDelay: Math.random() * 20 + 's',
-        animationDuration: (Math.random() * 10 + 10) + 's'
-      });
-    }
-    setParticles(particleArray);
+    window.scrollTo(0, 0);
   }, []);
 
   return (
@@ -103,7 +106,7 @@ const Navigation = () => {
       <div className="container">
         <div className="nav-content">
           <div className="logo">
-            <Favorite className="logo-icon" />
+            <img src="/HealthForesight/HealthForesight.png" alt="HealthForesight" className="logo-icon" />
             <span className="gradient-text">HealthForesight</span>
           </div>
           <div className="nav-links">
