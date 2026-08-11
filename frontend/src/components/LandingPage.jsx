@@ -1,6 +1,6 @@
-import React, { useEffect, useState } from 'react';
-import { motion } from 'framer-motion';
-import { useInView } from 'react-intersection-observer';
+import React, { useEffect, useState } from "react";
+import { motion } from "framer-motion";
+import { useInView } from "react-intersection-observer";
 import {
   Psychology,
   MonitorHeart,
@@ -15,18 +15,18 @@ import {
   Timeline,
   AutoAwesome,
   GitHub,
-  Email
-} from '@mui/icons-material';
-import './LandingPage.css';
+  Email,
+} from "@mui/icons-material";
+import "./LandingPage.css";
 
 const createParticles = (count = 50) => {
   const particleArray = [];
   for (let i = 0; i < count; i++) {
     particleArray.push({
       id: i,
-      left: Math.random() * 100 + '%',
-      animationDelay: Math.random() * 20 + 's',
-      animationDuration: (Math.random() * 10 + 10) + 's'
+      left: Math.random() * 100 + "%",
+      animationDelay: Math.random() * 20 + "s",
+      animationDuration: Math.random() * 10 + 10 + "s",
     });
   }
   return particleArray;
@@ -44,17 +44,17 @@ const LandingPage = () => {
     <div className="landing-page">
       {/* Animated Background */}
       <div className="animated-gradient-bg"></div>
-      
+
       {/* Floating Particles */}
       <div className="particles">
-        {particles.map(particle => (
+        {particles.map((particle) => (
           <div
             key={particle.id}
             className="particle"
             style={{
               left: particle.left,
               animationDelay: particle.animationDelay,
-              animationDuration: particle.animationDuration
+              animationDuration: particle.animationDuration,
             }}
           />
         ))}
@@ -92,13 +92,13 @@ const Navigation = () => {
     const handleScroll = () => {
       setScrolled(window.scrollY > 50);
     };
-    window.addEventListener('scroll', handleScroll);
-    return () => window.removeEventListener('scroll', handleScroll);
+    window.addEventListener("scroll", handleScroll);
+    return () => window.removeEventListener("scroll", handleScroll);
   }, []);
 
   return (
     <motion.nav
-      className={`navbar ${scrolled ? 'scrolled' : ''}`}
+      className={`navbar ${scrolled ? "scrolled" : ""}`}
       initial={{ y: -100 }}
       animate={{ y: 0 }}
       transition={{ duration: 0.5 }}
@@ -106,14 +106,29 @@ const Navigation = () => {
       <div className="container">
         <div className="nav-content">
           <div className="logo">
-            <img src={`${import.meta.env.BASE_URL}HealthForesight.png`} alt="HealthForesight" className="logo-icon" />
+            <img
+              src={`${import.meta.env.BASE_URL}HealthForesight.png`}
+              alt="HealthForesight"
+              className="logo-icon"
+            />
             <span className="gradient-text">HealthForesight</span>
           </div>
           <div className="nav-links">
-            <a href="#features" onClick={(e) => scrollToSection(e, 'features')}>Features</a>
-            <a href="#ai" onClick={(e) => scrollToSection(e, 'ai')}>AI Capabilities</a>
-            <a href="#about" onClick={(e) => scrollToSection(e, 'about')}>About</a>
-            <button className="btn btn-primary" onClick={() => window.location.href = '/login'}>Get Started</button>
+            <a href="#features" onClick={(e) => scrollToSection(e, "features")}>
+              Features
+            </a>
+            <a href="#ai" onClick={(e) => scrollToSection(e, "ai")}>
+              AI Capabilities
+            </a>
+            <a href="#about" onClick={(e) => scrollToSection(e, "about")}>
+              About
+            </a>
+            <button
+              className="btn btn-primary"
+              onClick={() => (window.location.href = "/login")}
+            >
+              Get Started
+            </button>
           </div>
         </div>
       </div>
@@ -138,7 +153,7 @@ const HeroSection = () => {
               animate={{ scale: 1 }}
               transition={{ delay: 0.2, type: "spring" }}
             >
-              <AutoAwesome style={{ fontSize: '1rem' }} />
+              <AutoAwesome style={{ fontSize: "1rem" }} />
               <span>AI-Powered Healthcare</span>
             </motion.div>
 
@@ -155,7 +170,10 @@ const HeroSection = () => {
             </p>
 
             <div className="hero-buttons">
-              <button className="btn btn-primary" onClick={() => window.location.href = '/login'}>
+              <button
+                className="btn btn-primary"
+                onClick={() => (window.location.href = "/login")}
+              >
                 Start Your Journey
                 <ArrowForward />
               </button>
@@ -193,7 +211,7 @@ const FloatingCard = ({ delay }) => {
       transition={{ delay, duration: 0.8 }}
       whileHover={{ scale: 1.05, rotate: 2 }}
     >
-      <MonitorHeart style={{ fontSize: '2rem', color: '#667eea' }} />
+      <MonitorHeart style={{ fontSize: "2rem", color: "#667eea" }} />
       <div className="card-pulse"></div>
     </motion.div>
   );
@@ -206,40 +224,46 @@ const FeaturesSection = () => {
   const features = [
     {
       icon: <Psychology />,
-      title: 'AI-Powered Diagnosis',
-      description: 'Machine learning models for heart disease and diabetes prediction with 95%+ accuracy',
-      gradient: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)'
+      title: "AI-Powered Diagnosis",
+      description:
+        "Machine learning models for heart disease and diabetes prediction with 95%+ accuracy",
+      gradient: "linear-gradient(135deg, #667eea 0%, #764ba2 100%)",
     },
     {
       icon: <Timeline />,
-      title: 'Resource Forecasting',
-      description: 'Prophet-based forecasting for optimal bed, ICU, and oxygen resource allocation',
-      gradient: 'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)'
+      title: "Resource Forecasting",
+      description:
+        "Prophet-based forecasting for optimal bed, ICU, and oxygen resource allocation",
+      gradient: "linear-gradient(135deg, #f093fb 0%, #f5576c 100%)",
     },
     {
       icon: <ChatBubble />,
-      title: 'Intelligent Chatbot',
-      description: 'RAG-powered medical assistant for instant answers to healthcare queries',
-      gradient: 'linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)'
+      title: "Intelligent Chatbot",
+      description:
+        "RAG-powered medical assistant for instant answers to healthcare queries",
+      gradient: "linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)",
     },
     {
       icon: <Analytics />,
-      title: 'Advanced Analytics',
-      description: 'Real-time dashboards and insights for data-driven decision making',
-      gradient: 'linear-gradient(135deg, #43e97b 0%, #38f9d7 100%)'
+      title: "Advanced Analytics",
+      description:
+        "Real-time dashboards and insights for data-driven decision making",
+      gradient: "linear-gradient(135deg, #43e97b 0%, #38f9d7 100%)",
     },
     {
       icon: <Security />,
-      title: 'HIPAA Compliant',
-      description: 'End-to-end encryption and comprehensive audit logging for security',
-      gradient: 'linear-gradient(135deg, #fa709a 0%, #fee140 100%)'
+      title: "HIPAA Compliant",
+      description:
+        "End-to-end encryption and comprehensive audit logging for security",
+      gradient: "linear-gradient(135deg, #fa709a 0%, #fee140 100%)",
     },
     {
       icon: <CloudDone />,
-      title: 'Cloud-Based',
-      description: 'Scalable infrastructure with 99.9% uptime and automatic backups',
-      gradient: 'linear-gradient(135deg, #30cfd0 0%, #330867 100%)'
-    }
+      title: "Cloud-Based",
+      description:
+        "Scalable infrastructure with 99.9% uptime and automatic backups",
+      gradient: "linear-gradient(135deg, #30cfd0 0%, #330867 100%)",
+    },
   ];
 
   return (
@@ -287,14 +311,16 @@ const FeatureCard = ({ feature, index, inView }) => {
       <motion.div
         className="feature-icon"
         style={{ background: feature.gradient }}
-        animate={hovered ? { scale: 1.1, rotate: 360 } : { scale: 1, rotate: 0 }}
+        animate={
+          hovered ? { scale: 1.1, rotate: 360 } : { scale: 1, rotate: 0 }
+        }
         transition={{ duration: 0.5 }}
       >
         {feature.icon}
       </motion.div>
       <h3>{feature.title}</h3>
       <p>{feature.description}</p>
-      
+
       <motion.div
         className="feature-arrow"
         animate={hovered ? { x: 5 } : { x: 0 }}
@@ -311,23 +337,23 @@ const AICapabilitiesSection = () => {
 
   const capabilities = [
     {
-      title: 'Heart Disease Prediction',
-      description: 'Advanced LightGBM model analyzing 13+ clinical parameters',
-      accuracy: '96%',
-      icon: <MonitorHeart />
+      title: "Heart Disease Prediction",
+      description: "Advanced LightGBM model analyzing 13+ clinical parameters",
+      accuracy: "96%",
+      icon: <MonitorHeart />,
     },
     {
-      title: 'Diabetes Risk Assessment',
-      description: 'Multi-factor analysis for early diabetes detection',
-      accuracy: '94%',
-      icon: <LocalHospital />
+      title: "Diabetes Risk Assessment",
+      description: "Multi-factor analysis for early diabetes detection",
+      accuracy: "94%",
+      icon: <LocalHospital />,
     },
     {
-      title: 'Resource Optimization',
-      description: 'Prophet-based forecasting for hospital resource planning',
-      accuracy: '92%',
-      icon: <Speed />
-    }
+      title: "Resource Optimization",
+      description: "Prophet-based forecasting for hospital resource planning",
+      accuracy: "92%",
+      icon: <Speed />,
+    },
   ];
 
   return (
@@ -339,7 +365,8 @@ const AICapabilitiesSection = () => {
           animate={inView ? { opacity: 1, y: 0 } : {}}
         >
           <h2>
-            <span className="gradient-text">AI-Powered</span> Medical Intelligence
+            <span className="gradient-text">AI-Powered</span> Medical
+            Intelligence
           </h2>
           <p>State-of-the-art machine learning models at your fingertips</p>
         </motion.div>
@@ -354,9 +381,7 @@ const AICapabilitiesSection = () => {
               transition={{ delay: index * 0.2, duration: 0.5 }}
               whileHover={{ scale: 1.05 }}
             >
-              <div className="ai-card-icon">
-                {capability.icon}
-              </div>
+              <div className="ai-card-icon">{capability.icon}</div>
               <h3>{capability.title}</h3>
               <p>{capability.description}</p>
               <div className="accuracy-bar">
@@ -385,7 +410,7 @@ const scrollToSection = (e, sectionId) => {
   e.preventDefault();
   const section = document.getElementById(sectionId);
   if (section) {
-    section.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    section.scrollIntoView({ behavior: "smooth", block: "start" });
   }
 };
 
@@ -405,36 +430,37 @@ const AboutSection = () => {
           <div className="about-text">
             <h2>About HealthForesight</h2>
             <p>
-              HealthForesight is a cutting-edge healthcare management platform that leverages
-              artificial intelligence and machine learning to revolutionize patient care and
-              hospital operations.
+              HealthForesight is a cutting-edge healthcare management platform
+              that leverages artificial intelligence and machine learning to
+              revolutionize patient care and hospital operations.
             </p>
             <p>
-              Our mission is to empower healthcare providers with predictive analytics,
-              intelligent decision support, and streamlined workflows. By combining advanced
-              ML models with an intuitive interface, we help medical professionals make
-              data-driven decisions that improve patient outcomes.
+              Our mission is to empower healthcare providers with predictive
+              analytics, intelligent decision support, and streamlined
+              workflows. By combining advanced ML models with an intuitive
+              interface, we help medical professionals make data-driven
+              decisions that improve patient outcomes.
             </p>
             <p>
-              Founded by a team of AI & ML experts, HealthForesight
-              brings together the best of modern technology. We're
-              committed to HIPAA compliance, data security, and delivering measurable
-              improvements in healthcare delivery.
+              Founded by a team of AI & ML experts, HealthForesight brings
+              together the best of modern technology. We're committed to HIPAA
+              compliance, data security, and delivering measurable improvements
+              in healthcare delivery.
             </p>
           </div>
           <div className="about-highlights">
             <div className="highlight-item glass-card">
-              <LocalHospital style={{ fontSize: '3rem', color: '#2563eb' }} />
+              <LocalHospital style={{ fontSize: "3rem", color: "#2563eb" }} />
               <h3>Patient-Centered</h3>
               <p>Every feature designed with patient outcomes in mind</p>
             </div>
             <div className="highlight-item glass-card">
-              <Security style={{ fontSize: '3rem', color: '#10b981' }} />
+              <Security style={{ fontSize: "3rem", color: "#10b981" }} />
               <h3>Secure & Compliant</h3>
               <p>HIPAA-compliant with enterprise-grade security</p>
             </div>
             <div className="highlight-item glass-card">
-              <Psychology style={{ fontSize: '3rem', color: '#0ea5e9' }} />
+              <Psychology style={{ fontSize: "3rem", color: "#0ea5e9" }} />
               <h3>AI-Powered</h3>
               <p>State-of-the-art machine learning models</p>
             </div>
@@ -444,10 +470,6 @@ const AboutSection = () => {
     </section>
   );
 };
-
-
-
-
 
 // CTA Section
 const CTASection = () => {
@@ -462,9 +484,15 @@ const CTASection = () => {
       >
         <div className="cta-card glass-card">
           <h2>Ready to Transform Healthcare?</h2>
-          <p>Join thousands of healthcare professionals using AI to improve patient outcomes</p>
+          <p>
+            Join thousands of healthcare professionals using AI to improve
+            patient outcomes
+          </p>
           <div className="cta-buttons">
-            <button className="btn btn-primary" onClick={() => window.location.href = '/login'}>
+            <button
+              className="btn btn-primary"
+              onClick={() => (window.location.href = "/login")}
+            >
               Get Started Free
               <ArrowForward />
             </button>
@@ -480,7 +508,12 @@ const ContactSection = () => {
   const [ref, inView] = useInView({ threshold: 0.2, triggerOnce: true });
 
   return (
-    <section id="contact" className="contact-section" ref={ref} style={{ padding: '5rem 0' }}>
+    <section
+      id="contact"
+      className="contact-section"
+      ref={ref}
+      style={{ padding: "5rem 0" }}
+    >
       <div className="container">
         <motion.div
           className="section-header"
@@ -492,9 +525,17 @@ const ContactSection = () => {
           <p>Get in touch with us</p>
         </motion.div>
 
-        <div style={{ display: 'flex', justifyContent: 'center', gap: '2rem', marginTop: '3rem', flexWrap: 'wrap' }}>
-          <motion.a 
-            href="https://github.com/Kubendra2004" 
+        <div
+          style={{
+            display: "flex",
+            justifyContent: "center",
+            gap: "2rem",
+            marginTop: "3rem",
+            flexWrap: "wrap",
+          }}
+        >
+          <motion.a
+            href="https://github.com/Kubendra2004"
             target="_blank"
             rel="noopener noreferrer"
             className="glass-card"
@@ -502,39 +543,39 @@ const ContactSection = () => {
             animate={inView ? { opacity: 1, x: 0 } : {}}
             transition={{ delay: 0.2, duration: 0.5 }}
             whileHover={{ scale: 1.05, y: -5 }}
-            style={{ 
-              display: 'flex', 
-              flexDirection: 'column', 
-              alignItems: 'center', 
-              padding: '2rem', 
-              textDecoration: 'none', 
-              color: 'inherit',
-              minWidth: '200px'
+            style={{
+              display: "flex",
+              flexDirection: "column",
+              alignItems: "center",
+              padding: "2rem",
+              textDecoration: "none",
+              color: "inherit",
+              minWidth: "200px",
             }}
           >
-            <GitHub style={{ fontSize: '3rem', marginBottom: '1rem' }} />
+            <GitHub style={{ fontSize: "3rem", marginBottom: "1rem" }} />
             <h3>GitHub</h3>
             <p style={{ margin: 0, opacity: 0.8 }}>Kubendra2004</p>
           </motion.a>
 
-          <motion.a 
-            href="mailto:kubendra2004@gmail.com" 
+          <motion.a
+            href="mailto:kubendra2004@gmail.com"
             className="glass-card"
             initial={{ opacity: 0, x: 20 }}
             animate={inView ? { opacity: 1, x: 0 } : {}}
             transition={{ delay: 0.4, duration: 0.5 }}
             whileHover={{ scale: 1.05, y: -5 }}
-            style={{ 
-              display: 'flex', 
-              flexDirection: 'column', 
-              alignItems: 'center', 
-              padding: '2rem', 
-              textDecoration: 'none', 
-              color: 'inherit',
-              minWidth: '200px'
+            style={{
+              display: "flex",
+              flexDirection: "column",
+              alignItems: "center",
+              padding: "2rem",
+              textDecoration: "none",
+              color: "inherit",
+              minWidth: "200px",
             }}
           >
-            <Email style={{ fontSize: '3rem', marginBottom: '1rem' }} />
+            <Email style={{ fontSize: "3rem", marginBottom: "1rem" }} />
             <h3>Email</h3>
             <p style={{ margin: 0, opacity: 0.8 }}>kubendra2004@gmail.com</p>
           </motion.a>
@@ -545,7 +586,5 @@ const ContactSection = () => {
 };
 
 // Footer
-
-
 
 export default LandingPage;
