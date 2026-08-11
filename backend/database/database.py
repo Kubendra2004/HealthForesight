@@ -1,5 +1,6 @@
 import os
 from sqlalchemy import create_engine
+from sqlalchemy.engine import URL
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
 from motor.motor_asyncio import AsyncIOMotorClient
@@ -12,20 +13,33 @@ load_dotenv()
 MYSQL_URL = os.getenv("MYSQL_URL")
 
 if not MYSQL_URL:
-    # Fallback to local keys if full URL not provided
     MYSQL_USER = os.getenv("MYSQL_USER", "root")
-    MYSQL_PASSWORD = os.getenv("MYSQL_PASSWORD", "Kubendra%402004")
+    MYSQL_PASSWORD = os.getenv("MYSQL_PASSWORD")
     MYSQL_HOST = os.getenv("MYSQL_HOST", "localhost")
     MYSQL_PORT = os.getenv("MYSQL_PORT", "3306")
     MYSQL_DB = os.getenv("MYSQL_DB", "health_app")
-    SQLALCHEMY_DATABASE_URL = f"mysql+pymysql://{MYSQL_USER}:{MYSQL_PASSWORD}@{MYSQL_HOST}:{MYSQL_PORT}/{MYSQL_DB}"
+    missing_vars = [name for name, value in {
+        "MYSQL_USER": MYSQL_USER,
+        "MYSQL_PASSWORD": MYSQL_PASSWORD,
+        "MYSQL_HOST": MYSQL_HOST,
+        "MYSQL_PORT": MYSQL_PORT,
+        "MYSQL_DB": MYSQL_DB,
+    }.items() if not value]
+    if missing_vars:
+        raise RuntimeError(f"Missing required MySQL environment variables: {', '.join(missing_vars)}")
+
+    SQLALCHEMY_DATABASE_URL = URL.create(
+        drivername="mysql+pymysql",
+        username=MYSQL_USER,
+        password=MYSQL_PASSWORD,
+        host=MYSQL_HOST,
+        port=int(MYSQL_PORT),
+        database=MYSQL_DB,
+    )
 else:
     SQLALCHEMY_DATABASE_URL = MYSQL_URL
 
 # Ensure pymysql is used
-if SQLALCHEMY_DATABASE_URL.startswith("mysql://"):
-    SQLALCHEMY_DATABASE_URL = SQLALCHEMY_DATABASE_URL.replace("mysql://", "mysql+pymysql://")
-
 engine = create_engine(SQLALCHEMY_DATABASE_URL)
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 

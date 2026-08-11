@@ -2,7 +2,8 @@ from fastapi import APIRouter, HTTPException, Depends
 from pydantic import BaseModel
 from typing import Optional
 import os
-import google.generativeai as genai
+from google import genai
+from google.genai import types
 from database.database import mongo_db
 from database.models_mongo import HeartDiseaseData, DiabetesData
 from dotenv import load_dotenv
@@ -21,8 +22,7 @@ router = APIRouter(
 
 # Configure Gemini
 api_key = os.getenv("GEMINI_API_KEY")
-if api_key:
-    genai.configure(api_key=api_key)
+genai_client = genai.Client(api_key=api_key) if api_key else None
 
 # Global RAG Components Cache (initialized once at startup)
 rag_components = {
@@ -155,7 +155,7 @@ tools_list = [book_appointment, add_to_waitlist]
 
 @router.post("/ask")
 async def ask_chatbot(request: ChatRequest):
-    if not api_key:
+    if not genai_client:
         # Instead of crashing, return a polite unavailable message
         # This prevents the 500 error on frontend
         return {
@@ -237,15 +237,19 @@ async def ask_chatbot(request: ChatRequest):
         
         # 4. Call Gemini with Tools
         try:
-            model = genai.GenerativeModel('gemini-2.5-flash', tools=tools_list)
-            chat = model.start_chat(enable_automatic_function_calling=True)
-            response = chat.send_message(system_prompt)
+            response = genai_client.models.generate_content(
+                model="gemini-2.5-flash",
+                contents=system_prompt,
+                config=types.GenerateContentConfig(
+                    tools=tools_list,
+                ),
+            )
             
             return {
-                "response": response.text, 
+                "response": response.text or "", 
                 "context_used": bool(context),
                 "rag_used": bool(rag_context),
-                "tool_used": len(chat.history) > 2
+                "tool_used": bool(getattr(response, "function_calls", None))
             }
         except Exception as gemini_error:
             print(f"Gemini API Error: {gemini_error}")

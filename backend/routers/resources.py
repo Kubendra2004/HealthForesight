@@ -15,6 +15,54 @@ router = APIRouter(
 def serialize_list(cursor_list):
     return [{**doc, "_id": str(doc["_id"])} for doc in cursor_list]
 
+
+@router.get("/resources/current")
+async def get_current_resources():
+    """Return the current operational resource snapshot for the front desk dashboard."""
+    beds_total = await mongo_db.beds.count_documents({})
+    beds_occupied = await mongo_db.beds.count_documents({"status": "Occupied"})
+    beds_available = max(0, beds_total - beds_occupied)
+
+    icu_total = await mongo_db.beds.count_documents({"type": "ICU"})
+    icu_occupied = await mongo_db.beds.count_documents({"type": "ICU", "status": "Occupied"})
+    icu_available = max(0, icu_total - icu_occupied)
+
+    oxygen_item = await mongo_db.inventory.find_one({"category": "Medicine", "name": {"$regex": "oxygen", "$options": "i"}})
+    oxygen_count = int(oxygen_item.get("quantity", 0)) if oxygen_item else 0
+
+    staff_count = await mongo_db.users.count_documents({"role": {"$in": ["doctor", "frontdesk", "admin"]}})
+
+    return [
+        {
+            "type": "beds",
+            "count": beds_occupied,
+            "total_capacity": beds_total,
+            "status": "Warning" if beds_available < 10 else "Normal",
+            "last_updated": datetime.utcnow(),
+        },
+        {
+            "type": "icu",
+            "count": icu_occupied,
+            "total_capacity": icu_total,
+            "status": "Critical" if icu_available < 3 else "Normal",
+            "last_updated": datetime.utcnow(),
+        },
+        {
+            "type": "oxygen",
+            "count": oxygen_count,
+            "total_capacity": max(oxygen_count, 100),
+            "status": "Critical" if oxygen_count < 20 else "Normal",
+            "last_updated": datetime.utcnow(),
+        },
+        {
+            "type": "staff",
+            "count": staff_count,
+            "total_capacity": staff_count,
+            "status": "Normal",
+            "last_updated": datetime.utcnow(),
+        },
+    ]
+
 # --- Beds ---
 
 @router.get("/beds", response_model=List[dict])

@@ -21,7 +21,7 @@ class HeartDiseaseData(BaseModel):
     created_at: datetime = Field(default_factory=datetime.utcnow)
 
     class Config:
-        schema_extra = {
+        json_schema_extra = {
             "example": {
                 "age": 63,
                 "sex": 1,
@@ -63,7 +63,7 @@ class DiabetesData(BaseModel):
     created_at: datetime = Field(default_factory=datetime.utcnow)
 
     class Config:
-        schema_extra = {
+        json_schema_extra = {
             "example": {
                 "age": 40,
                 "gender": "Male",
