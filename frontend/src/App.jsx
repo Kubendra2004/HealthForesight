@@ -16,7 +16,7 @@ function App() {
   return (
     <AuthProvider>
       <WebSocketProvider>
-        <Router>
+        <Router basename={import.meta.env.BASE_URL}>
             <AnimatePresence mode="wait">
             <Routes>
                 {/* Public Routes */}
@@ -31,7 +31,7 @@ function App() {
                 <Route path="/dashboard/frontdesk" element={<FrontdeskDashboard />} />
                 
                 {/* Fallback */}
-                <Route path="*" element={<Navigate to="/login" replace />} />
+                <Route path="*" element={<LandingPage />} />
             </Routes>
             </AnimatePresence>
         </Router>
