@@ -1,8 +1,7 @@
 import React from "react";
 import { Box } from "@mui/material";
-import DashboardNavbar from "./DashboardNavbar";
 
-const DashboardLayout = ({ children }) => {
+const DashboardLayout = ({ children, title, role }) => {
   return (
     <Box
       sx={{
@@ -16,7 +15,7 @@ const DashboardLayout = ({ children }) => {
       <Box
         component="main"
         sx={{
-          mt: 8,
+          mt: 0,
           width: "100%",
           boxSizing: "border-box",
           overflowX: "hidden",

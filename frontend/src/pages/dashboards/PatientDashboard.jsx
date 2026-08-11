@@ -424,7 +424,15 @@ export default function PatientDashboard() {
     <DashboardLayout title="Patient Dashboard" role="patient">
       {/* Main Content Container with overflow fix */}
       <Box
-        sx={{ width: "100%", maxWidth: "100vw", mb: 8, overflowX: "hidden" }}
+        sx={{
+          width: "100%",
+          maxWidth: "100vw",
+          mb: active === "chat" ? 0 : 8,
+          overflowX: "hidden",
+          height: active === "chat" ? "calc(100vh - 96px)" : "auto",
+          maxHeight: active === "chat" ? "calc(100vh - 96px)" : "none",
+          overflowY: active === "chat" ? "hidden" : "visible",
+        }}
       >
         <AnimatePresence mode="wait">
           {active === "appointments" ? (
@@ -479,7 +487,9 @@ export default function PatientDashboard() {
               <PatientResourceForecast />
             </motion.div>
           ) : active === "chat" ? (
-            <PatientChat patientId={patientId} />
+            <Box sx={{ height: "100%", minHeight: 0, overflow: "hidden" }}>
+              <PatientChat patientId={patientId} />
+            </Box>
           ) : active === "notifications" ? (
             <PatientNotifications patientId={patientId} />
           ) : active === "dashboard" ? (

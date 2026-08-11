@@ -84,3 +84,36 @@ async def get_audit_stats(current_user: User = Depends(get_current_user)):
         "total_requests_24h": await mongo_db.audit_logs.count_documents({"timestamp": {"$gte": yesterday}}),
         "top_endpoints": [{"endpoint": e["_id"], "count": e["count"]} for e in top_endpoints]
     }
+
+
+@router.get("/chatbot-usage")
+async def get_chatbot_usage_logs(
+    skip: int = 0,
+    limit: int = 100,
+    user: Optional[str] = None,
+    current_user: User = Depends(get_current_user)
+):
+    """Get chatbot token and latency usage logs for admin review."""
+    if current_user.role != UserRole.admin:
+        raise HTTPException(status_code=403, detail="Admin access required")
+
+    query = {}
+    if user:
+        query["patient_id"] = {"$regex": user, "$options": "i"}
+
+    logs = (
+        await mongo_db.chatbot_usage_logs.find(query)
+        .sort("created_at", -1)
+        .skip(skip)
+        .limit(limit)
+        .to_list(length=limit)
+    )
+
+    for log in logs:
+        log["id"] = str(log["_id"])
+        del log["_id"]
+
+    return {
+        "total": await mongo_db.chatbot_usage_logs.count_documents(query),
+        "logs": logs,
+    }

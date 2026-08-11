@@ -509,6 +509,7 @@ const UserManagementSection = () => {
 
 const AuditLogsSection = () => {
     const [logs, setLogs] = useState([]);
+    const [chatUsageLogs, setChatUsageLogs] = useState([]);
     
     useEffect(() => {
         fetch(`${import.meta.env.VITE_API_URL}/admin/audit/logs`, {
@@ -522,6 +523,13 @@ const AuditLogsSection = () => {
             setLogs(userLogs);
         }) 
         .catch(err => console.error(err));
+
+        fetch(`${import.meta.env.VITE_API_URL}/admin/audit/chatbot-usage`, {
+            headers: { Authorization: `Bearer ${localStorage.getItem("token")}` }
+        })
+        .then(res => res.ok ? res.json() : { logs: [] })
+        .then(data => setChatUsageLogs(data.logs || []))
+        .catch(err => console.error(err));
     }, []);
 
     return (
@@ -532,7 +540,7 @@ const AuditLogsSection = () => {
                 color="linear-gradient(135deg, #ec4899 0%, #db2777 100%)" 
             />
             
-            <Box sx={{ ...glassStyle, width: '100%', overflowX: 'auto', borderRadius: 4 }}>
+             <Box sx={{ ...glassStyle, width: '100%', overflowX: 'auto', borderRadius: 4 }}>
                 <TableContainer component={Paper} sx={{ minWidth: 800, background: 'transparent', boxShadow: 'none' }}>
                     <Table>
                         <TableHead>
@@ -568,6 +576,66 @@ const AuditLogsSection = () => {
                                         </Box>
                                     </TableCell>
                                     <TableCell sx={{ fontFamily: 'monospace' }}>{log.ip_address}</TableCell>
+                                </TableRow>
+                            ))}
+                        </TableBody>
+                    </Table>
+                </TableContainer>
+             </Box>
+
+             <SectionHeader 
+                title="Chatbot Usage Logs" 
+                subtitle="Per-user token usage and latency for AI chat requests" 
+                color="linear-gradient(135deg, #0f766e 0%, #2563eb 100%)" 
+            />
+
+            <Box sx={{ ...glassStyle, width: '100%', overflowX: 'auto', borderRadius: 4 }}>
+                <TableContainer component={Paper} sx={{ minWidth: 980, background: 'transparent', boxShadow: 'none' }}>
+                    <Table>
+                        <TableHead>
+                            <TableRow sx={{ bgcolor: '#f8fafc' }}>
+                                <TableCell sx={{ fontWeight: 'bold' }}>When</TableCell>
+                                <TableCell sx={{ fontWeight: 'bold' }}>Patient</TableCell>
+                                <TableCell sx={{ fontWeight: 'bold' }}>Prompt Tokens</TableCell>
+                                <TableCell sx={{ fontWeight: 'bold' }}>Completion Tokens</TableCell>
+                                <TableCell sx={{ fontWeight: 'bold' }}>Total Tokens</TableCell>
+                                <TableCell sx={{ fontWeight: 'bold' }}>Latency</TableCell>
+                                <TableCell sx={{ fontWeight: 'bold' }}>RAG</TableCell>
+                                <TableCell sx={{ fontWeight: 'bold' }}>Question Preview</TableCell>
+                            </TableRow>
+                        </TableHead>
+                        <TableBody>
+                            {chatUsageLogs.length === 0 ? (
+                                <TableRow>
+                                    <TableCell colSpan={8} align="center" sx={{ py: 3 }}>No chatbot usage logs found</TableCell>
+                                </TableRow>
+                            ) : chatUsageLogs.map((log, i) => (
+                                <TableRow key={log.id || i} hover>
+                                    <TableCell>{new Date(log.created_at).toLocaleString()}</TableCell>
+                                    <TableCell sx={{ fontWeight: 700 }}>{log.patient_id}</TableCell>
+                                    <TableCell>{log.usage?.prompt_tokens ?? '-'}</TableCell>
+                                    <TableCell>{log.usage?.completion_tokens ?? '-'}</TableCell>
+                                    <TableCell>
+                                        <Chip
+                                            label={log.usage?.total_tokens ?? '-'}
+                                            size="small"
+                                            sx={{ bgcolor: '#eef4ff', color: '#31557d', fontWeight: 700 }}
+                                        />
+                                    </TableCell>
+                                    <TableCell>{typeof log.latency_ms === 'number' ? `${log.latency_ms} ms` : '-'}</TableCell>
+                                    <TableCell>
+                                        <Chip
+                                            label={log.rag_used ? 'Used' : 'No'}
+                                            size="small"
+                                            color={log.rag_used ? 'success' : 'default'}
+                                            variant="outlined"
+                                        />
+                                    </TableCell>
+                                    <TableCell sx={{ maxWidth: 320 }}>
+                                        <Typography variant="body2" noWrap title={log.query_preview || ''}>
+                                            {log.query_preview || '-'}
+                                        </Typography>
+                                    </TableCell>
                                 </TableRow>
                             ))}
                         </TableBody>

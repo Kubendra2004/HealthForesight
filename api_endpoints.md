@@ -68,8 +68,7 @@
 ## 🤖 Chatbot (`/chatbot`)
 | Method | Endpoint | Description |
 | :--- | :--- | :--- |
-| POST | `/chatbot/ask` | Ask medical question (RAG-enabled) |
-| POST | `/chatbot/execute-action` | Execute chatbot action |
+| POST | `/chatbot/ask` | Ask medical question with authenticated patient context, RAG retrieval, and tool-assisted actions |
 
 ---
 
