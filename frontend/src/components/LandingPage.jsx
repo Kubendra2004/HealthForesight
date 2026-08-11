@@ -106,7 +106,7 @@ const Navigation = () => {
       <div className="container">
         <div className="nav-content">
           <div className="logo">
-            <img src="/HealthForesight/HealthForesight.png" alt="HealthForesight" className="logo-icon" />
+            <img src={`${import.meta.env.BASE_URL}HealthForesight.png`} alt="HealthForesight" className="logo-icon" />
             <span className="gradient-text">HealthForesight</span>
           </div>
           <div className="nav-links">
