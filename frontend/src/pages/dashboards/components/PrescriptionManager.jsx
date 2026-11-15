@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, Typography, List, ListItem, ListItemText, Divider, Box, Chip } from '@mui/material';
 import axios from 'axios';
+import { API_BASE_URL } from '../../../lib/api';
 
 const PrescriptionManager = () => {
   const [prescriptions, setPrescriptions] = useState([]);
@@ -8,7 +9,7 @@ const PrescriptionManager = () => {
   useEffect(() => {
     const token = localStorage.getItem("token");
     if (token) {
-        fetch('http://localhost:8000/portal/prescriptions', {
+        fetch(`${API_BASE_URL}/portal/prescriptions`, {
              headers: { Authorization: `Bearer ${token}` }
         })
         .then(res => res.ok ? res.json() : [])

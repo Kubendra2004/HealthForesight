@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { API_BASE_URL } from '../../lib/api';
 import { useNavigate } from 'react-router-dom';
 import { 
   Box, Container, Grid, Paper, Typography, Button, 
@@ -113,7 +114,7 @@ const FrontdeskDashboard = () => {
   useEffect(() => {
     const timeoutId = setTimeout(async () => {
         try {
-            const res = await fetch(`http://localhost:8000/frontdesk/search_patients?q=${patientQuery}`, {
+            const res = await fetch(`${API_BASE_URL}/frontdesk/search_patients?q=${encodeURIComponent(patientQuery)}`, {
                 headers: { 'Authorization': `Bearer ${token}` }
             });
             if (res.ok) {
@@ -141,7 +142,7 @@ const FrontdeskDashboard = () => {
   
   const handleUpdateResource = async (data) => {
       try {
-           const res = await fetch('http://localhost:8000/frontdesk/resources/update', {
+           const res = await fetch(`${API_BASE_URL}/resources/update`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
                 body: JSON.stringify(data)
@@ -192,14 +193,14 @@ const FrontdeskDashboard = () => {
     
     try {
       const [apptsRes, doctorsRes, resourcesRes, bedsRes, waitlistRes, inventoryRes, billsRes, statsRes] = await Promise.all([
-        fetch(`${import.meta.env.VITE_API_URL}/frontdesk/appointments`, { headers }),
-        fetch(`${import.meta.env.VITE_API_URL}/auth/users?role=doctor`, { headers }),
-        fetch(`${import.meta.env.VITE_API_URL}/resources/current`, { headers }),
-        fetch(`${import.meta.env.VITE_API_URL}/beds`, { headers }),
-        fetch(`${import.meta.env.VITE_API_URL}/operations/waitlist`, { headers }),
-        fetch(`${import.meta.env.VITE_API_URL}/operations/inventory`, { headers }),
-        fetch(`${import.meta.env.VITE_API_URL}/billing`, { headers }),
-        fetch(`${import.meta.env.VITE_API_URL}/operations/stats`, { headers })
+        fetch(`${API_BASE_URL}/frontdesk/appointments`, { headers }),
+        fetch(`${API_BASE_URL}/auth/users?role=doctor`, { headers }),
+        fetch(`${API_BASE_URL}/resources/current`, { headers }),
+        fetch(`${API_BASE_URL}/beds`, { headers }),
+        fetch(`${API_BASE_URL}/operations/waitlist`, { headers }),
+        fetch(`${API_BASE_URL}/operations/inventory`, { headers }),
+        fetch(`${API_BASE_URL}/billing`, { headers }),
+        fetch(`${API_BASE_URL}/operations/stats`, { headers })
       ]);
 
       if (apptsRes.ok) setAppointments(await apptsRes.json());
@@ -228,7 +229,7 @@ const FrontdeskDashboard = () => {
   const handleCreateAppointment = async () => {
     try {
       const dateTime = new Date(`${apptForm.date}T${apptForm.time}`).toISOString();
-      const res = await fetch('http://localhost:8000/frontdesk/appointments', {
+      const res = await fetch(`${API_BASE_URL}/frontdesk/appointments`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
         body: JSON.stringify({
@@ -261,7 +262,7 @@ const FrontdeskDashboard = () => {
 
   const handleAssignPatient = async () => {
       try {
-          const res = await fetch(`http://localhost:8000/frontdesk/assign_patient`, {
+          const res = await fetch(`${API_BASE_URL}/frontdesk/assign_patient`, {
               method: 'POST',
               headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
               body: JSON.stringify(assignForm)
@@ -285,7 +286,7 @@ const FrontdeskDashboard = () => {
 
   const handleUpdateAppointmentStatus = async (id, status) => {
     try {
-      const res = await fetch(`http://localhost:8000/frontdesk/appointments/${id}`, {
+      const res = await fetch(`${API_BASE_URL}/frontdesk/appointments/${id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
         body: JSON.stringify({ status })
@@ -326,7 +327,7 @@ const FrontdeskDashboard = () => {
         if (processingBill) {
             let billId = processingBill._id;
             // 1. Update Bill Details
-            const updateRes = await fetch(`${import.meta.env.VITE_API_URL}/billing/${billId}`, {
+            const updateRes = await fetch(`${API_BASE_URL}/billing/${billId}`, {
                 method: 'PUT',
                 headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
                 body: JSON.stringify(payload)
@@ -335,7 +336,7 @@ const FrontdeskDashboard = () => {
             if (!updateRes.ok) throw new Error('Failed to update bill');
 
             // 2. Process Payment immediately
-            const payRes = await fetch(`${import.meta.env.VITE_API_URL}/billing/${billId}/pay`, {
+            const payRes = await fetch(`${API_BASE_URL}/billing/${billId}/pay`, {
                 method: 'POST',
                 headers: { 'Authorization': `Bearer ${token}` }
             });
@@ -345,7 +346,7 @@ const FrontdeskDashboard = () => {
 
         } else {
             // Create New Bill
-            const res = await fetch(`${import.meta.env.VITE_API_URL}/frontdesk/bills`, {
+            const res = await fetch(`${API_BASE_URL}/frontdesk/bills`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
                 body: JSON.stringify({
@@ -371,7 +372,7 @@ const FrontdeskDashboard = () => {
   const handleAllocateBed = async () => {
     try {
       // If we selected a bed via 3D view, bedForm.bed_id should be set
-      const res = await fetch(`${import.meta.env.VITE_API_URL}/beds/allocate`, {
+      const res = await fetch(`${API_BASE_URL}/beds/allocate`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
         body: JSON.stringify({ bed_id: bedForm.bed_id, patient_id: bedForm.patient_id })
@@ -391,7 +392,7 @@ const FrontdeskDashboard = () => {
 
   const handleDeallocateBed = async (bedId) => {
     try {
-       const res = await fetch(`${import.meta.env.VITE_API_URL}/beds/deallocate`, {
+       const res = await fetch(`${API_BASE_URL}/beds/deallocate`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
         body: JSON.stringify({ bed_id: bedId })
@@ -924,7 +925,7 @@ const FrontdeskDashboard = () => {
                 <InputLabel>Type</InputLabel>
                 <Select value={apptForm.type} label="Type" onChange={(e) => setApptForm({...apptForm, type: e.target.value})}>
                     <MenuItem value="in-person">In-Person</MenuItem>
-                    <MenuItem value="online">Virtual</MenuItem>
+                    <MenuItem value="online" disabled>Virtual (Unavailable)</MenuItem>
                 </Select>
              </FormControl>
              <Box display="flex" alignItems="flex-start" gap={1}>

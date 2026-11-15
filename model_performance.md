@@ -1,5 +1,7 @@
 # Model Performance Report
 
+> **Validation status:** These are development metrics from the repository's training and evaluation scripts, not evidence of clinical validation or fitness for diagnosis or treatment. They should not be presented as validated clinical performance until evaluated on representative, independent data and reviewed for subgroup performance and calibration.
+
 This document summarizes the accuracy and performance metrics for all machine learning models implemented in the Healthcare ML Platform.
 
 ## 1. Disease Prediction Models

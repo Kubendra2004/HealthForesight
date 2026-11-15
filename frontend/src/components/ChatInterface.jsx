@@ -8,6 +8,7 @@ import { useAuth } from '../context/AuthContext';
 import { useWebSocket } from '../context/WebSocketContext';
 import { motion, AnimatePresence } from 'framer-motion';
 import VoiceInput from './VoiceInput';
+import { API_BASE_URL } from '../lib/api';
 
 const ChatInterface = ({ otherUser, onClose }) => {
   const { user, token } = useAuth();
@@ -30,7 +31,7 @@ const ChatInterface = ({ otherUser, onClose }) => {
     const fetchHistory = async () => {
       setLoading(true);
       try {
-        const res = await fetch(`${import.meta.env.VITE_API_URL}/messages/history/${otherUser.username || otherUser.id}`, {
+        const res = await fetch(`${API_BASE_URL}/messages/history/${otherUser.username || otherUser.id}`, {
           headers: { 'Authorization': `Bearer ${token}` }
         });
         if (res.ok) {
@@ -85,7 +86,7 @@ const ChatInterface = ({ otherUser, onClose }) => {
         type: 'text'
       };
 
-      const res = await fetch(`${import.meta.env.VITE_API_URL}/messages/send`, {
+      const res = await fetch(`${API_BASE_URL}/messages/send`, {
         method: 'POST',
         headers: { 
             'Content-Type': 'application/json',

@@ -1,7 +1,10 @@
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Depends
 from database.database import mongo_db
 from typing import Optional
 from datetime import datetime
+from auth.auth import get_current_user
+from auth.authorization import require_patient_access, require_roles
+from database.models_sql import User, UserRole
 
 router = APIRouter(
     prefix="/fhir",
@@ -9,12 +12,13 @@ router = APIRouter(
 )
 
 @router.get("/Patient/{patient_id}")
-async def get_fhir_patient(patient_id: str):
+async def get_fhir_patient(patient_id: str, current_user: User = Depends(get_current_user)):
     """
     Returns patient data in FHIR R4 Patient resource format.
     Maps internal data to HL7 FHIR standard.
     """
     try:
+        await require_patient_access(patient_id, current_user)
         # In a real implementation, fetch from your patient database
         # For now, we'll return a sample FHIR Patient resource
         
@@ -65,7 +69,7 @@ async def get_fhir_patient(patient_id: str):
         raise HTTPException(status_code=500, detail=f"FHIR mapping failed: {str(e)}")
 
 @router.get("/Patient")
-async def search_fhir_patients(name: Optional[str] = None):
+async def search_fhir_patients(name: Optional[str] = None, _user: User = Depends(require_roles(UserRole.admin, UserRole.doctor))):
     """
     Search for patients. Returns FHIR Bundle.
     """

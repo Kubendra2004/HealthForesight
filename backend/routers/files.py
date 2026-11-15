@@ -1,11 +1,15 @@
 from fastapi import APIRouter, UploadFile, File, HTTPException, Depends, Form
 from fastapi.responses import FileResponse
-from typing import List
+from typing import List, Optional
 import os
-import shutil
+import re
+from uuid import uuid4
 from datetime import datetime
 from database.database import mongo_db
 from database.models_mongo import NotificationData
+from database.models_sql import User, UserRole
+from auth.auth import get_current_user
+from auth.authorization import require_patient_access
 from bson import ObjectId
 import PyPDF2
 from reportlab.pdfgen import canvas
@@ -17,24 +21,31 @@ router = APIRouter(
 )
 
 UPLOAD_DIR = "uploads"
+MAX_UPLOAD_BYTES = 10 * 1024 * 1024
 if not os.path.exists(UPLOAD_DIR):
     os.makedirs(UPLOAD_DIR)
 
 @router.post("/upload")
-async def upload_file(patient_id: str = Form(...), file: UploadFile = File(...)):
+async def upload_file(patient_id: str = Form(...), file: UploadFile = File(...), current_user: User = Depends(get_current_user)):
     try:
+        await require_patient_access(patient_id, current_user)
         # Save file
-        timestamp = datetime.now().strftime("%Y%m%d%H%M%S")
-        filename = f"{patient_id}_{timestamp}_{file.filename}"
-        file_path = os.path.join(UPLOAD_DIR, filename)
+        original_filename = os.path.basename(file.filename or "upload")
+        original_filename = re.sub(r"[^A-Za-z0-9._ -]", "_", original_filename).strip(" .") or "upload"
+        filename = f"{uuid4().hex}_{original_filename}"
+        file_path = os.path.abspath(os.path.join(UPLOAD_DIR, filename))
+        contents = await file.read(MAX_UPLOAD_BYTES + 1)
+        if len(contents) > MAX_UPLOAD_BYTES:
+            raise HTTPException(status_code=413, detail="File exceeds the 10 MB upload limit")
         
         with open(file_path, "wb") as buffer:
-            shutil.copyfileobj(file.file, buffer)
+            buffer.write(contents)
             
         # Save metadata to MongoDB
         report_data = {
             "patient_id": patient_id,
-            "filename": file.filename,
+            "filename": original_filename,
+            "storage_filename": filename,
             "file_path": file_path,
             "uploaded_at": datetime.utcnow(),
             "processed": False
@@ -42,15 +53,20 @@ async def upload_file(patient_id: str = Form(...), file: UploadFile = File(...))
         result = await mongo_db.reports.insert_one(report_data)
         
         return {"id": str(result.inserted_id), "message": "File uploaded successfully"}
+    except HTTPException:
+        raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
 @router.post("/process/{report_id}")
-async def process_report(report_id: str):
+async def process_report(report_id: str, current_user: User = Depends(get_current_user)):
     try:
+        if not ObjectId.is_valid(report_id):
+            raise HTTPException(status_code=400, detail="Invalid report ID")
         report = await mongo_db.reports.find_one({"_id": ObjectId(report_id)})
         if not report:
             raise HTTPException(status_code=404, detail="Report not found")
+        await require_patient_access(report.get("patient_id", ""), current_user)
             
         file_path = report["file_path"]
         extracted_text = ""
@@ -106,7 +122,7 @@ async def process_report(report_id: str):
         summary += f"Content Snippet:\n{extracted_text[:200]}..."
         
         # 3. Generate PDF Summary
-        summary_filename = f"summary_{report['filename']}.pdf"
+        summary_filename = f"summary_{report['storage_filename']}.pdf"
         summary_path = os.path.join(UPLOAD_DIR, summary_filename)
         
         c = canvas.Canvas(summary_path, pagesize=letter)
@@ -184,21 +200,49 @@ async def process_report(report_id: str):
             "summary_url": f"/files/download/{summary_filename}"
         }
         
+    except HTTPException:
+        raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
 @router.get("/download/{filename}")
-async def download_file(filename: str):
-    file_path = os.path.join(UPLOAD_DIR, filename)
+async def download_file(filename: str, report_id: Optional[str] = None, current_user: User = Depends(get_current_user)):
+    safe_filename = os.path.basename(filename)
+    if safe_filename != filename:
+        raise HTTPException(status_code=400, detail="Invalid file name")
+    if report_id:
+        if not ObjectId.is_valid(report_id):
+            raise HTTPException(status_code=400, detail="Invalid report ID")
+        report = await mongo_db.reports.find_one({"_id": ObjectId(report_id)})
+        if report and safe_filename not in {report.get("filename"), report.get("storage_filename")}:
+            raise HTTPException(status_code=404, detail="File not found")
+    else:
+        report = await mongo_db.reports.find_one(
+            {"$or": [{"filename": safe_filename}, {"storage_filename": safe_filename}, {"summary_path": os.path.join(UPLOAD_DIR, safe_filename)}]},
+            sort=[("uploaded_at", -1)],
+        )
+    if not report:
+        raise HTTPException(status_code=404, detail="File not found")
+    await require_patient_access(report.get("patient_id", ""), current_user)
+    if report.get("summary_path") and os.path.basename(report["summary_path"]) == safe_filename:
+        file_path = report["summary_path"]
+    else:
+        file_path = report.get("file_path")
+    upload_root = os.path.abspath(UPLOAD_DIR)
+    if not file_path or os.path.commonpath([upload_root, os.path.abspath(file_path)]) != upload_root:
+        raise HTTPException(status_code=404, detail="File not found")
     if os.path.exists(file_path):
-        return FileResponse(file_path)
+        return FileResponse(file_path, filename=report.get("filename", safe_filename))
     raise HTTPException(status_code=404, detail="File not found")
 
 @router.get("/patient/{patient_id}")
-async def get_patient_files(patient_id: str):
+async def get_patient_files(patient_id: str, current_user: User = Depends(get_current_user)):
+    await require_patient_access(patient_id, current_user)
     cursor = mongo_db.reports.find({"patient_id": patient_id})
     files = await cursor.to_list(length=100)
     for f in files:
         f["id"] = str(f["_id"])
         del f["_id"]
+        f.pop("file_path", None)
+        f.pop("storage_filename", None)
     return files

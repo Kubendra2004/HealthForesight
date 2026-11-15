@@ -22,6 +22,8 @@
 
 **HealthForesight** is a Next-Gen Hospital Management System designed to bridge the gap between patients, doctors, and hospital administration. Unlike traditional HMIS, it leverages **Artificial Intelligence** and **Machine Learning** to provide predictive insights, streamline workflows, and enhance accessibility.
 
+Clinical prediction metrics in this repository are development results, not independent clinical validation. Model outputs are informational and must not be used alone to diagnose or treat a patient.
+
 ### 🌟 Key Differentiators
 
 - 💖 **Predictive Diagnostics:** Integrated ML models to assess Heart Disease and Diabetes risk levels for patients.
@@ -82,7 +84,7 @@ Note: MySQL is the primary relational datastore (required at startup for auth), 
 - **Unified Workspace:** View appointments, patient history, and prescriptions in one glassmorphic interface.
 - **Patient Requests:** Accept/Reject appointment requests in real-time.
 - **Digital Prescriptions:** Generate and save prescriptions instantly.
-- **Telemedicine Capable:** Integrated interface for identifying online vs. in-person visits.
+- **Appointment Types:** In-person appointment scheduling is available. Video appointments remain disabled until a real meeting provider is configured.
 
 ### 3. 🖥️ Front Desk / Reception
 
@@ -111,7 +113,8 @@ Note: MySQL is the primary relational datastore (required at startup for auth), 
 
 - Node.js (v16+)
 - Python (v3.9+)
-- MongoDB (Local or Atlas)
+- MySQL (local or hosted; required at backend startup)
+- MongoDB (local or Atlas)
 
 ### 1. Clone the Repository
 
@@ -142,11 +145,15 @@ _Backend runs on `http://localhost:8000`_
 cd frontend
 # Install packages
 npm install
+# Optional: copy the example and configure the backend URL
+# Copy-Item .env.example .env
 # Run Client
 npm run dev
 ```
 
 _Frontend runs on `http://localhost:5173`_
+
+The frontend defaults to `/api`, which Vite proxies to `http://localhost:8000` during local development. For a separately hosted backend, set `VITE_API_URL` in `frontend/.env` to the backend origin. Example files are provided at `frontend/.env.example` and `backend/.env.example`.
 
 ---
 
@@ -178,11 +185,14 @@ MONGODB_DB=health_app_ai
 GEMINI_API_KEY= # Google GenAI (Gemini) API key used by chatbot (optional; chatbot returns offline message if missing)
 SECRET_KEY=your_jwt_secret
 ALGORITHM=HS256
+CORS_ORIGINS=http://localhost:3000,http://localhost:5173,http://localhost:8000
+ACCESS_TOKEN_EXPIRE_MINUTES=40
 ```
 
 Notes:
 - The backend enforces MySQL configuration on startup; missing MySQL credentials will raise a clear runtime error to avoid silent fallbacks to SQLite.
-- Keep `.env` out of version control and share `backend/.env.example` with collaborators.
+- Set a unique random `SECRET_KEY`; the backend refuses to start when it is missing.
+- Keep `.env` out of version control and use the example files to configure local environments.
 
 ---
 

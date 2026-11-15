@@ -1,8 +1,7 @@
-# HealthForesight API Endpoints - Complete Documentation
+# HealthForesight API Endpoints - Overview
 **Base URL:** `http://localhost:8000`
 
-**Total Endpoints:** 100+  
-**Routers:** 19
+The route list below is a hand-maintained overview. For the exact current request and response schemas, use FastAPI's `/docs` page while the backend is running.
 
 ---
 
@@ -21,7 +20,7 @@
 ### Appointments
 | Method | Endpoint | Description |
 | :--- | :--- | :--- |
-| POST | `/frontdesk/appointments` | Create appointment (auto Google Meet for online) |
+| POST | `/frontdesk/appointments` | Create an in-person appointment or request |
 | GET | `/frontdesk/appointments` | List appointments (filter by patient/doctor) |
 | PUT | `/frontdesk/appointments/{id}` | Update appointment status |
 | DELETE | `/frontdesk/appointments/{id}` | Cancel appointment |
@@ -45,23 +44,25 @@
 | Method | Endpoint | Description |
 | :--- | :--- | :--- |
 | POST | `/doctor/prescriptions` | Issue prescription |
-| GET | `/doctor/prescriptions/{patient_id}` | Get patient prescriptions |
-| GET | `/doctor/patients` | Get assigned patients list |
+| GET | `/patient/prescriptions/{patient_id}` | Get an authorized patient's prescriptions |
+| GET | `/doctor/prescriptions/{doctor_id}` | Get the authenticated doctor's prescriptions |
+| GET | `/doctor/patients/{doctor_id}` | Get the authenticated doctor's assigned patients |
 
 ---
 
 ## 🔬 ML Predictions (`/ml`)
 | Method | Endpoint | Description |
 | :--- | :--- | :--- |
-| POST | `/ml/predict/heart-disease` | Heart disease prediction |
+| POST | `/ml/predict/heart` | Heart disease prediction |
 | POST | `/ml/predict/diabetes` | Diabetes prediction |
-| POST | `/ml/predict/clustering` | Patient risk clustering |
+| POST | `/ml/predict/cluster` | Patient risk clustering |
 | POST | `/ml/predict/readmission` | 30-day readmission risk |
 | POST | `/ml/predict/icu_transfer` | ICU transfer risk |
 | GET | `/ml/predict/resources` | Resource forecasting (1/7/30 days) |
-| POST | `/ml/predict/length-of-stay` | Length of stay prediction |
-| POST | `/ml/explain` | SHAP explanations for predictions |
-| POST | `/ml/retrain/{model_name}` | Retrain model (Admin) |
+| POST | `/analytics/predict/length-of-stay` | Length of stay estimate |
+| POST | `/ml/explain/heart` | Heart model explanation |
+| POST | `/ml/explain/diabetes` | Diabetes model explanation |
+| POST | `/admin/models/retrain?model_name=heart` | Retrain a model (Admin) |
 
 ---
 
@@ -76,21 +77,21 @@
 | Method | Endpoint | Description |
 | :--- | :--- | :--- |
 | POST | `/files/upload` | Upload medical report |
-| GET | `/files/{file_id}` | Download file |
-| GET | `/files/list/{patient_id}` | List patient files |
+| GET | `/files/download/{filename}` | Download an authorized patient file |
+| GET | `/files/patient/{patient_id}` | List patient files |
 | POST | `/files/process/{file_id}` | Extract report data |
-| POST | `/files/generate-summary/{patient_id}` | Generate PDF summary |
 
 ---
 
 ## 🏥 Resources & Beds (`/resources`)
 | Method | Endpoint | Description |
 | :--- | :--- | :--- |
-| GET | `/resources/levels` | Current resource levels |
+| GET | `/resources/current` | Current resource levels |
 | POST | `/resources/update` | Manual resource update |
-| POST | `/resources/allocate-bed` | Allocate bed to patient |
-| POST | `/resources/deallocate-bed` | Deallocate bed |
-| GET | `/resources/3d-view` | 3D visualization data |
+| GET | `/beds` | List beds |
+| POST | `/beds/allocate` | Allocate bed to patient |
+| POST | `/beds/deallocate` | Deallocate bed |
+| GET | `/ml/predict/resources?days=7` | Fresh resource forecast (1-30 days; returns 503 when stale or unavailable) |
 
 ---
 
@@ -101,7 +102,7 @@
 | :--- | :--- | :--- |
 | POST | `/operations/waitlist` | Add to waitlist |
 | GET | `/operations/waitlist` | View waitlist |
-| PUT | `/operations/waitlist/{id}` | Update priority/status |
+| PUT | `/operations/waitlist/{id}/status` | Update waitlist status |
 
 ### Inventory
 | Method | Endpoint | Description |
@@ -130,7 +131,7 @@
 ## 🔴 WebSocket (`/ws`)
 | Endpoint | Description |
 | :--- | :--- |
-| `/ws/{client_id}` | WebSocket connection for real-time updates |
+| `/ws/connect?token=<jwt>` | JWT-authenticated WebSocket connection |
 
 ---
 
@@ -201,8 +202,8 @@
 ### Telemedicine
 | Method | Endpoint | Description |
 | :--- | :--- | :--- |
-| POST | `/integrations/telemedicine/create-meeting` | Create Google Meet link |
-| GET | `/integrations/telemedicine/meetings/{appointment_id}` | Get meeting details |
+| POST | `/integrations/telemedicine/create-meeting` | Returns 503 until Google Calendar integration is configured |
+| GET | `/integrations/telemedicine/meetings/{appointment_id}` | Get an existing meeting (if configured) |
 
 ### Lab Integration
 | Method | Endpoint | Description |
@@ -232,27 +233,27 @@
 
 ## 📝 Request/Response Examples
 
-### Create Online Appointment (Auto Google Meet)
+### Create Appointment
 **POST** `/frontdesk/appointments`
 ```json
 {
   "patient_id": "p123",
   "doctor_id": "d456",
   "date": "2024-12-10T15:00:00",
-  "reason": "Virtual Consultation",
-  "type": "online",
-  "status": "Confirmed"
+  "reason": "Routine consultation",
+  "type": "in-person",
+  "status": "Requested"
 }
 ```
 **Response:**
 ```json
 {
   "id": "abc123",
-  "message": "Appointment scheduled/requested",
-  "meet_url": "https://meet.google.com/xyz-abcd-efg",
-  "meet_code": "xyz-abcd-efg"
+  "message": "Appointment scheduled/requested"
 }
 ```
+
+Online appointments are currently unavailable. The app does not yet have Google Calendar credentials to create real meeting links.
 
 ### Check Drug Interactions
 **POST** `/clinical/med-reconciliation`
@@ -296,4 +297,4 @@ Get token from `/auth/login`
 ## 📚 Interactive API Docs
 Visit: `http://localhost:8000/docs` for Swagger UI with all endpoints
 
-**Total:** 100+ functional endpoints ready for frontend integration!
+Route access is role and record dependent. Clinical or operational information should only be requested by an authenticated user with access to the relevant patient or workflow.

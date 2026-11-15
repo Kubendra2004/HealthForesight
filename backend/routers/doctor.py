@@ -8,6 +8,7 @@ from database.models_sql import User, UserRole
 from database.database import get_db
 from sqlalchemy.orm import Session
 from auth.auth import get_current_user, Hash
+from auth.authorization import require_patient_access, require_roles
 from database.models_sql import User, UserRole
 
 router = APIRouter(
@@ -26,8 +27,11 @@ def serialize_list(cursor):
 # --- Prescriptions ---
 
 @router.post("/doctor/prescriptions", response_model=dict)
-async def create_prescription(presc: PrescriptionData):
+async def create_prescription(presc: PrescriptionData, current_user: User = Depends(require_roles(UserRole.doctor, UserRole.admin))):
     try:
+        if current_user.role != UserRole.admin and presc.doctor_id != current_user.username:
+            raise HTTPException(status_code=403, detail="Doctors can only prescribe under their own account")
+        await require_patient_access(presc.patient_id, current_user)
         # Verify appointment exists (Optional but recommended)
         # appt = await mongo_db.appointments.find_one({"_id": ObjectId(presc.appointment_id)})
         # if not appt: raise HTTPException(404, "Appointment not found")
@@ -38,13 +42,16 @@ async def create_prescription(presc: PrescriptionData):
         raise HTTPException(status_code=500, detail=str(e))
 
 @router.get("/patient/prescriptions/{patient_id}", response_model=List[dict])
-async def get_patient_prescriptions(patient_id: str):
+async def get_patient_prescriptions(patient_id: str, current_user: User = Depends(get_current_user)):
+    await require_patient_access(patient_id, current_user)
     cursor = mongo_db.prescriptions.find({"patient_id": patient_id})
     prescriptions = await cursor.to_list(length=100)
     return serialize_list(prescriptions)
 
 @router.get("/doctor/prescriptions/{doctor_id}", response_model=List[dict])
-async def get_doctor_prescriptions(doctor_id: str):
+async def get_doctor_prescriptions(doctor_id: str, current_user: User = Depends(get_current_user)):
+    if current_user.role != UserRole.admin and (current_user.role != UserRole.doctor or current_user.username != doctor_id):
+        raise HTTPException(status_code=403, detail="Doctors can only view their own prescriptions")
     cursor = mongo_db.prescriptions.find({"doctor_id": doctor_id})
     prescriptions = await cursor.to_list(length=100)
     return serialize_list(prescriptions)
@@ -52,8 +59,10 @@ async def get_doctor_prescriptions(doctor_id: str):
 # --- Assigned Patients ---
 
 @router.get("/doctor/patients/{doctor_id}", response_model=List[str])
-async def get_assigned_patients(doctor_id: str):
+async def get_assigned_patients(doctor_id: str, current_user: User = Depends(get_current_user)):
     try:
+        if current_user.role != UserRole.admin and (current_user.role != UserRole.doctor or current_user.username != doctor_id):
+            raise HTTPException(status_code=403, detail="Doctors can only view their own patient list")
         # Find all unique patient_ids from appointments for this doctor
         pipeline = [
             {"$match": {"doctor_id": doctor_id}},
@@ -75,9 +84,15 @@ async def get_assigned_patients(doctor_id: str):
         raise HTTPException(status_code=500, detail=str(e))
 
 @router.get("/doctor/search_patients", response_model=List[dict])
-def search_patients(q: Optional[str] = None, db: Session = Depends(get_db)):
+async def search_patients(q: Optional[str] = None, db: Session = Depends(get_db), current_user: User = Depends(require_roles(UserRole.doctor, UserRole.admin))):
     """Search for patients by name/ID. Returns recent/all if q is empty."""
     query = db.query(User).filter(User.role == UserRole.patient)
+
+    if current_user.role != UserRole.admin:
+        assignments = await mongo_db.assignments.find({"doctor_id": current_user.username}).to_list(1000)
+        appointments = await mongo_db.appointments.find({"doctor_id": current_user.username}).to_list(1000)
+        patient_ids = {item.get("patient_id") for item in assignments + appointments if item.get("patient_id")}
+        query = query.filter(User.username.in_(patient_ids))
     
     if q:
         query = query.filter(User.username.ilike(f"%{q}%"))
@@ -90,7 +105,7 @@ def search_patients(q: Optional[str] = None, db: Session = Depends(get_db)):
     ]
 
 @router.get("/doctor/search_medicines", response_model=List[str])
-async def search_medicines(q: str):
+async def search_medicines(q: str, _user: User = Depends(require_roles(UserRole.doctor, UserRole.admin, UserRole.frontdesk))):
     """Search for medicines"""
     # If q is empty, return all/top medicines (for client-side cache)
     query = {}
@@ -102,7 +117,8 @@ async def search_medicines(q: str):
     return [m["name"] for m in medicines]
 
 @router.get("/doctor/patient_profile/{patient_id}")
-async def get_patient_profile_for_doctor(patient_id: str):
+async def get_patient_profile_for_doctor(patient_id: str, current_user: User = Depends(get_current_user)):
+    await require_patient_access(patient_id, current_user)
     """Get patient profile for doctor view"""
     profile = await mongo_db.patient_profiles.find_one({"patient_id": patient_id})
     if not profile:

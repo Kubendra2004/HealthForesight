@@ -1,5 +1,6 @@
 import React, { createContext, useState, useContext, useEffect } from 'react';
 import axios from 'axios';
+import { API_BASE_URL } from '../lib/api';
 
 const AuthContext = createContext(null);
 
@@ -34,7 +35,7 @@ export const AuthProvider = ({ children }) => {
       formData.append('username', email);
       formData.append('password', password);
 
-      const response = await axios.post(`${import.meta.env.VITE_API_URL}/auth/login`, formData, {
+      const response = await axios.post(`${API_BASE_URL}/auth/login`, formData, {
         headers: {
           'Content-Type': 'application/x-www-form-urlencoded'
         }
@@ -71,7 +72,7 @@ export const AuthProvider = ({ children }) => {
   const signup = async (userData) => {
     try {
       // Use /auth/register for public patient/doctor registration
-      const response = await axios.post(`${import.meta.env.VITE_API_URL}/auth/register`, userData);
+      const response = await axios.post(`${API_BASE_URL}/auth/register`, userData);
       
       const { access_token } = response.data;
       

@@ -2,6 +2,8 @@ from fastapi import APIRouter, HTTPException, Depends
 from database.database import mongo_db
 from auth.auth import get_current_user
 from database.models_sql import User
+from database.models_sql import UserRole
+from auth.authorization import require_patient_access, require_roles
 from pydantic import BaseModel
 from typing import List, Optional
 from datetime import datetime
@@ -30,6 +32,7 @@ async def check_vitals(
     Clinical decision support: Check vitals against thresholds and alert on abnormalities.
     Returns alerts for critical values.
     """
+    await require_patient_access(vitals.patient_id, current_user)
     alerts = []
     
     # Blood Pressure Check
@@ -115,6 +118,7 @@ async def predict_fall_risk(
     Predict patient fall risk using scoring system.
     Returns risk level and preventive recommendations.
     """
+    await require_patient_access(data.patient_id, current_user)
     # Fall risk scoring (simplified Morse Fall Scale-like)
     score = 0
     
@@ -187,7 +191,7 @@ class MedicationCheck(BaseModel):
 @router.post("/med-reconciliation")
 async def medication_reconciliation(
     check: MedicationCheck,
-    current_user: User = Depends(get_current_user)
+    current_user: User = Depends(require_roles(UserRole.doctor, UserRole.admin))
 ):
     """
     Check for medication duplicates and drug interactions.
@@ -245,6 +249,7 @@ async def log_adverse_event(
     current_user: User = Depends(get_current_user)
 ):
     """Log adverse event for quality tracking"""
+    await require_patient_access(event.patient_id, current_user)
     event_data = {
         **event.dict(),
         "reported_by": current_user.username,
@@ -257,7 +262,7 @@ async def log_adverse_event(
 @router.get("/adverse-events/trends")
 async def get_adverse_event_trends(
     days: int = 30,
-    current_user: User = Depends(get_current_user)
+    current_user: User = Depends(require_roles(UserRole.doctor, UserRole.admin))
 ):
     """Analyze adverse event patterns"""
     # TODO: Aggregate event data and identify trends

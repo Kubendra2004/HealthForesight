@@ -2,10 +2,12 @@ from fastapi import APIRouter, HTTPException, Depends
 from database.database import mongo_db
 from auth.auth import get_current_user
 from database.models_sql import User
+from database.models_sql import UserRole
+from auth.authorization import require_patient_access, require_roles
 from pydantic import BaseModel
 from typing import Optional
 from datetime import datetime
-import hashlib
+from bson import ObjectId
 
 router = APIRouter(
     prefix="/integrations",
@@ -23,55 +25,33 @@ class MeetingRequest(BaseModel):
 @router.post("/telemedicine/create-meeting")
 async def create_google_meet(
     request: MeetingRequest,
-    current_user: User = Depends(get_current_user)
+    current_user: User = Depends(require_roles(UserRole.admin, UserRole.frontdesk, UserRole.doctor))
 ):
-    """
-    Create Google Meet link for telemedicine consultation.
-    Generates unique meeting code based on appointment ID.
-    """
-    # Generate unique meeting code
-    meet_code = hashlib.md5(f"{request.appointment_id}{datetime.utcnow()}".encode()).hexdigest()[:10]
-    
-    meeting_data = {
-        "meeting_code": meet_code,
-        "join_url": f"https://meet.google.com/{meet_code}",
-        "appointment_id": request.appointment_id,
-        "patient_id": request.patient_id,
-        "doctor_id": request.doctor_id,
-        "duration": request.duration_minutes,
-        "created_by": current_user.username,
-        "created_at": datetime.utcnow()
-    }
-    
-    # Save meeting info
-    await mongo_db.telemedicine_meetings.insert_one(meeting_data)
-    
-    # Send email to both patient and doctor
-    from utils.email import send_telemedicine_invite
-    # await send_telemedicine_invite(request.patient_id, meeting_data["join_url"])
-    
-    return {
-        "meeting_code": meet_code,
-        "join_url": meeting_data["join_url"],
-        "message": "Google Meet link created successfully"
-    }
+    """Create a meeting once a Google Calendar integration has been configured."""
+    appointment = await mongo_db.appointments.find_one({"_id": ObjectId(request.appointment_id)}) if ObjectId.is_valid(request.appointment_id) else None
+    if not appointment:
+        raise HTTPException(status_code=404, detail="Appointment not found")
+    if appointment.get("patient_id") != request.patient_id or appointment.get("doctor_id") != request.doctor_id:
+        raise HTTPException(status_code=400, detail="Appointment participants do not match")
+    await require_patient_access(request.patient_id, current_user, allow_frontdesk=True)
+    if current_user.role == UserRole.doctor and request.doctor_id != current_user.username:
+        raise HTTPException(status_code=403, detail="Doctors can only create meetings for their appointments")
+
+    raise HTTPException(
+        status_code=503,
+        detail="Google Meet creation is unavailable until a Google Calendar integration is configured.",
+    )
 
 @router.get("/telemedicine/meetings/{appointment_id}")
 async def get_meeting(
     appointment_id: str,
     current_user: User = Depends(get_current_user)
 ):
-    """Get Google Meet details for appointment"""
-    meeting = await mongo_db.telemedicine_meetings.find_one({"appointment_id": appointment_id})
-    
-    if not meeting:
-        raise HTTPException(status_code=404, detail="Meeting not found")
-    
-    return {
-        "meeting_code": meeting["meeting_code"],
-        "join_url": meeting["join_url"],
-        "created_at": meeting["created_at"]
-    }
+    """Retrieve meeting details after Google Calendar integration is configured."""
+    raise HTTPException(
+        status_code=503,
+        detail="Google Meet is not configured for this deployment.",
+    )
 
 # --- Lab Integration ---
 
@@ -86,7 +66,7 @@ class LabImport(BaseModel):
 @router.post("/lab/import")
 async def import_lab_results(
     labs: list[LabImport],
-    current_user: User = Depends(get_current_user)
+    current_user: User = Depends(require_roles(UserRole.admin, UserRole.doctor))
 ):
     """
     Bulk import external lab results.
@@ -95,6 +75,7 @@ async def import_lab_results(
     imported_count = 0
     
     for lab in labs:
+        await require_patient_access(lab.patient_id, current_user)
         lab_data = {
             **lab.dict(),
             "imported_by": current_user.username,
@@ -121,6 +102,7 @@ async def get_lab_results(
 ):
     """Retrieve lab results for patient"""
     query = {"patient_id": patient_id}
+    await require_patient_access(patient_id, current_user)
     if lab_type:
         query["lab_type"] = lab_type
     

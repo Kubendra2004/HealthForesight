@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import { API_BASE_URL, authHeaders } from '../../../lib/api';
 import {
   Dialog,
   DialogTitle,
@@ -76,7 +77,7 @@ export default function OnboardingModal({ open, onClose, user, onComplete }) {
   React.useEffect(() => {
      if(open && user?.username) {
          setLoading(true);
-         axios.get(`${import.meta.env.VITE_API_URL}/portal/profile`, {
+         axios.get(`${API_BASE_URL}/portal/profile`, {
              headers: { Authorization: `Bearer ${localStorage.getItem("token")}` }
          }).then(res => {
              // Merge existing data with form structure
@@ -216,7 +217,7 @@ export default function OnboardingModal({ open, onClose, user, onComplete }) {
 
       // Single API Call -> Backend handles predictions
       await axios.post(
-          `${import.meta.env.VITE_API_URL}/portal/profile`,
+          `${API_BASE_URL}/portal/profile`,
           profilePayload,
           { headers }
       );
@@ -253,11 +254,15 @@ export default function OnboardingModal({ open, onClose, user, onComplete }) {
         formDataUpload.append("patient_id", user?.username || "temp");
 
         // 1. Upload
-        const uploadRes = await axios.post(`${import.meta.env.VITE_API_URL}/files/upload`, formDataUpload);
+        const uploadRes = await axios.post(`${API_BASE_URL}/files/upload`, formDataUpload, {
+            headers: authHeaders(),
+        });
         
         // 2. Process
         if(uploadRes.data.id) {
-            const processRes = await axios.post(`${import.meta.env.VITE_API_URL}/files/process/${uploadRes.data.id}`);
+            const processRes = await axios.post(`${API_BASE_URL}/files/process/${uploadRes.data.id}`, {}, {
+                headers: authHeaders(),
+            });
             const vitals = processRes.data.vitals;
             
             // 3. Auto-fill

@@ -3,10 +3,13 @@ from typing import List
 from database.database import mongo_db
 from database.models_mongo import WaitlistEntry, InventoryItem
 from bson import ObjectId
+from auth.authorization import require_roles
+from database.models_sql import UserRole
 
 router = APIRouter(
     prefix="/operations",
-    tags=["Operations & Resources"]
+    tags=["Operations & Resources"],
+    dependencies=[Depends(require_roles(UserRole.admin, UserRole.frontdesk))],
 )
 
 # --- Waitlist Management ---

@@ -2,6 +2,7 @@ from fastapi import APIRouter, HTTPException, Depends, Query
 from database.database import mongo_db
 from auth.auth import get_current_user
 from database.models_sql import User, UserRole
+from auth.authorization import require_roles
 from typing import Optional, List
 from datetime import datetime, timedelta
 import pandas as pd
@@ -21,7 +22,7 @@ router = APIRouter(
 async def create_cohort(
     name: str,
     filters: dict,
-    current_user: User = Depends(get_current_user)
+    current_user: User = Depends(require_roles(UserRole.admin, UserRole.doctor))
 ):
     """
     Create patient cohort based on filters.
@@ -44,9 +45,13 @@ async def get_cohort_stats(cohort_id: str, current_user: User = Depends(get_curr
     from bson import ObjectId
     
     # Get cohort definition
+    if not ObjectId.is_valid(cohort_id):
+        raise HTTPException(status_code=400, detail="Invalid cohort ID")
     cohort = await mongo_db.cohorts.find_one({"_id": ObjectId(cohort_id)})
     if not cohort:
         raise HTTPException(status_code=404, detail="Cohort not found")
+    if current_user.role != UserRole.admin and cohort.get("created_by") != current_user.username:
+        raise HTTPException(status_code=403, detail="You can only view cohorts you created")
     
     filters = cohort.get("filters", {})
     

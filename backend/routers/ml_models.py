@@ -10,6 +10,7 @@ from prophet.serialize import model_from_json
 from database.database import mongo_db
 from auth.auth import get_current_user
 from database.models_sql import User
+from auth.authorization import require_patient_access
 
 router = APIRouter(
     prefix="/ml",
@@ -175,7 +176,7 @@ class DiabetesData(BaseModel):
 # --- Endpoints ---
 
 @router.post("/predict/cluster")
-def predict_cluster(data: ClusteringData):
+def predict_cluster(data: ClusteringData, _current_user: User = Depends(get_current_user)):
     # Ensure model is loaded
     clustering_model = get_model('clustering')
     if not clustering_model:
@@ -255,6 +256,7 @@ async def predict_heart(data: HeartDiseaseData, current_user: User = Depends(get
 
 @router.get("/predictions/heart/{patient_id}")
 async def get_heart_prediction(patient_id: str, current_user: User = Depends(get_current_user)):
+    await require_patient_access(patient_id, current_user)
     """Get latest heart disease prediction for a patient"""
     try:
         prediction = await mongo_db.heart_predictions.find_one(
@@ -278,7 +280,7 @@ async def get_heart_prediction(patient_id: str, current_user: User = Depends(get
 import shap
 
 @router.post("/explain/heart")
-def explain_heart(data: HeartDiseaseData):
+def explain_heart(data: HeartDiseaseData, _current_user: User = Depends(get_current_user)):
     heart_model = get_model('heart')
     if not heart_model:
         raise HTTPException(status_code=500, detail="Heart Disease model not available")
@@ -362,6 +364,7 @@ async def predict_diabetes(data: DiabetesData, current_user: User = Depends(get_
 
 @router.get("/predictions/diabetes/{patient_id}")
 async def get_diabetes_prediction(patient_id: str, current_user: User = Depends(get_current_user)):
+    await require_patient_access(patient_id, current_user)
     """Get latest diabetes prediction for a patient"""
     try:
         prediction = await mongo_db.diabetes_predictions.find_one(
@@ -383,7 +386,7 @@ async def get_diabetes_prediction(patient_id: str, current_user: User = Depends(
         raise HTTPException(status_code=500, detail=str(e))
 
 @router.post("/explain/diabetes")
-def explain_diabetes(data: DiabetesData):
+def explain_diabetes(data: DiabetesData, _current_user: User = Depends(get_current_user)):
     diabetes_models = get_model('diabetes')
     if not diabetes_models:
          raise HTTPException(status_code=500, detail="Diabetes model not available")
@@ -449,7 +452,7 @@ class ICUTransferData(BaseModel):
     temperature: float
 
 @router.post("/predict/readmission")
-def predict_readmission(data: ReadmissionData):
+def predict_readmission(data: ReadmissionData, _current_user: User = Depends(get_current_user)):
     readmission_model = get_model('readmission')
     if not readmission_model:
         raise HTTPException(status_code=500, detail="Readmission model not available")
@@ -469,7 +472,7 @@ def predict_readmission(data: ReadmissionData):
         raise HTTPException(status_code=500, detail=str(e))
 
 @router.post("/predict/icu_transfer")
-def predict_icu_transfer(data: ICUTransferData):
+def predict_icu_transfer(data: ICUTransferData, _current_user: User = Depends(get_current_user)):
     icu_model = get_model('icu_transfer')
     if not icu_model:
         raise HTTPException(status_code=500, detail="ICU Transfer model not available")
@@ -489,93 +492,47 @@ def predict_icu_transfer(data: ICUTransferData):
         raise HTTPException(status_code=500, detail=str(e))
 
 @router.get("/predict/resources")
-async def predict_resources(days: int = 7):
-    """Get resource forecasts for beds, ICU, oxygen, etc. adjusted with real-time data."""
+async def predict_resources(days: int = 7, _current_user: User = Depends(get_current_user)):
+    """Return a fresh, precomputed forecast or report that no current forecast is available."""
+    if days < 1 or days > 30:
+        raise HTTPException(status_code=422, detail="days must be between 1 and 30")
     try:
-        from datetime import datetime, timedelta
         import json
-        
-        # 1. Get Real-time Baseline from DB
-        occupied_count = await mongo_db.beds.count_documents({"status": "Occupied"})
-        
-        # Try to load pattern from forecast_output.json
+
         forecast_file = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'forecast_output.json')
-        
-        start_date = datetime.now()
-        beds_forecast = []
-        oxygen_forecast = []
-        icu_forecast = []
-        er_forecast = []
-        
-        beds_offset = 0
-        
-        if os.path.exists(forecast_file):
-            try:
-                with open(forecast_file, 'r') as f:
-                    forecast_data = json.load(f)
-                    
-                # Extract data arrays
-                beds_data = forecast_data.get('beds_occupied', [])
-                oxygen_data = forecast_data.get('oxygen_usage', [])
-                icu_data = forecast_data.get('icu_admissions', [])
-                er_data = forecast_data.get('er_visits', [])
-                
-                # Calculate Offset: Real - Predicted[0]
-                if beds_data:
-                    predicted_start = float(beds_data[0])
-                    beds_offset = occupied_count - predicted_start
-                
-                # Format with dates
-                for i in range(min(days, len(beds_data))):
-                    date_str = (start_date + timedelta(days=i)).strftime("%Y-%m-%d")
-                    
-                    if i < len(beds_data):
-                        # Apply offset to beds to align with reality
-                        adj_val = max(0, float(beds_data[i]) + beds_offset)
-                        beds_forecast.append({"date": date_str, "prediction": round(adj_val, 1)})
-                        
-                    if i < len(oxygen_data):
-                         # Assume correlation: if beds are higher, oxygen is likely higher too? 
-                         # For now, let's just keep oxygen as is or apply similar ratio. Keeping simple.
-                        oxygen_forecast.append({"date": date_str, "prediction": float(oxygen_data[i])})
-                    if i < len(icu_data):
-                        icu_forecast.append({"date": date_str, "prediction": float(icu_data[i])})
-                    if i < len(er_data):
-                        er_forecast.append({"date": date_str, "prediction": float(er_data[i])})
-            except:
-                pass 
-        
-        # If file missing or empty, use smart mock data starting from real count
-        if not beds_forecast:
-            for i in range(days):
-                date = (start_date + timedelta(days=i)).strftime("%Y-%m-%d")
-                
-                # Create a realistic curve starting from actual occupied_count
-                trend = (i * 1.5) + (np.sin(i) * 2) # Slight upward trend + fluctuation
-                
-                beds_forecast.append({
-                    "date": date,
-                    "prediction": max(0, occupied_count + trend)
-                })
-                # Correlate others vaguely
-                oxygen_forecast.append({
-                    "date": date,
-                    "prediction": max(0, (occupied_count * 2.5) + trend)
-                })
-                icu_forecast.append({
-                    "date": date,
-                    "prediction": max(0, (occupied_count * 0.2) + (i % 2))
-                })
-                er_forecast.append({
-                    "date": date,
-                    "prediction": 30 + (i * 2)
-                })
-        
-        return {
-            "beds": beds_forecast,
-            "oxygen": oxygen_forecast,
-            "icu": icu_forecast,
-            "er_visits": er_forecast
+        if not os.path.exists(forecast_file):
+            raise HTTPException(status_code=503, detail="No resource forecast is available. Generate a fresh forecast first.")
+
+        with open(forecast_file, 'r', encoding='utf-8') as forecast_stream:
+            forecast_data = json.load(forecast_stream)
+
+        today = datetime.utcnow().date()
+        source_fields = {
+            "beds": "beds",
+            "oxygen": "oxygen",
+            "icu": "icu",
+            "er_visits": "er_visits",
         }
+        forecasts = {}
+        for output_name, source_name in source_fields.items():
+            values = forecast_data.get(source_name)
+            if not isinstance(values, list):
+                raise HTTPException(status_code=503, detail="Resource forecast data is incomplete. Generate a fresh forecast first.")
+            future_values = []
+            for item in values:
+                try:
+                    forecast_date = datetime.fromisoformat(item["date"]).date()
+                    prediction = float(item["prediction"])
+                except (KeyError, TypeError, ValueError):
+                    continue
+                if forecast_date >= today:
+                    future_values.append({"date": forecast_date.isoformat(), "prediction": prediction})
+            if len(future_values) < days:
+                raise HTTPException(status_code=503, detail="Resource forecast is stale or does not cover the requested horizon.")
+            forecasts[output_name] = future_values[:days]
+
+        return {**forecasts, "source": "precomputed_forecast", "horizon_days": days}
+    except HTTPException:
+        raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Resource forecast failed: {str(e)}")

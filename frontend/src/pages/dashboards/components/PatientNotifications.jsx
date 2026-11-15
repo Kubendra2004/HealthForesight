@@ -20,6 +20,7 @@ import {
 } from '@mui/icons-material';
 import { motion, AnimatePresence } from 'framer-motion';
 import axios from 'axios';
+import { API_BASE_URL, authHeaders } from '../../../lib/api';
 
 const PatientNotifications = ({ patientId }) => {
   const [notifications, setNotifications] = useState([]);
@@ -36,7 +37,7 @@ const PatientNotifications = ({ patientId }) => {
     }
     try {
         // Backend expects user_id
-      const res = await axios.get(`http://localhost:8000/frontdesk/notifications/${patientId}`);
+      const res = await axios.get(`${API_BASE_URL}/frontdesk/notifications/${patientId}`, { headers: authHeaders() });
       // Sort by date desc
       const sorted = res.data.sort((a, b) => new Date(b.date) - new Date(a.date));
       setNotifications(sorted);
@@ -49,7 +50,7 @@ const PatientNotifications = ({ patientId }) => {
 
   const markAsRead = async (id) => {
     try {
-      await axios.put(`http://localhost:8000/frontdesk/notifications/${id}/read`);
+      await axios.put(`${API_BASE_URL}/frontdesk/notifications/${id}/read`, {}, { headers: authHeaders() });
       setNotifications(prev => prev.map(n => n._id === id ? { ...n, read: true } : n));
     } catch (err) {
       console.error("Error marking read:", err);

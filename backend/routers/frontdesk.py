@@ -6,6 +6,7 @@ from database.models_mongo import AppointmentData, BillData, NotificationData, A
 from database.models_sql import User, UserRole
 from sqlalchemy.orm import Session
 from auth.auth import get_current_user
+from auth.authorization import require_patient_access, require_roles
 from bson import ObjectId
 from routers.websocket import notify_user
 
@@ -26,7 +27,7 @@ def serialize_list(cursor):
 # --- Search ---
 
 @router.get("/search_patients", response_model=List[dict])
-def search_patients(q: Optional[str] = None, db: Session = Depends(get_db)):
+def search_patients(q: Optional[str] = None, db: Session = Depends(get_db), _user: User = Depends(require_roles(UserRole.admin, UserRole.frontdesk))):
     """Search for patients by name/ID for generic usage. Returns recent/all if q is empty."""
     query = db.query(User).filter(User.role == UserRole.patient)
     
@@ -42,8 +43,16 @@ def search_patients(q: Optional[str] = None, db: Session = Depends(get_db)):
 
 # --- Assignments ---
 @router.post("/assign_patient", response_model=dict)
-async def assign_patient(data: AssignmentData):
+async def assign_patient(
+    data: AssignmentData,
+    db: Session = Depends(get_db),
+    _user: User = Depends(require_roles(UserRole.admin, UserRole.frontdesk)),
+):
     try:
+        patient = db.query(User).filter(User.username == data.patient_id, User.role == UserRole.patient).first()
+        doctor = db.query(User).filter(User.username == data.doctor_id, User.role == UserRole.doctor).first()
+        if not patient or not doctor:
+            raise HTTPException(status_code=404, detail="Patient or doctor account not found")
         # Check if already assigned
         existing = await mongo_db.assignments.find_one({
             "patient_id": data.patient_id,
@@ -55,17 +64,45 @@ async def assign_patient(data: AssignmentData):
         await mongo_db.assignments.insert_one(data.dict())
         return {"message": "Patient assigned successfully"}
     except Exception as e:
+        if isinstance(e, HTTPException):
+            raise e
         raise HTTPException(status_code=500, detail=str(e))
 
 # --- Appointments ---
 
 @router.post("/appointments", response_model=dict)
-async def create_appointment(appt: AppointmentData):
+async def create_appointment(
+    appt: AppointmentData,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
     try:
+        patient = db.query(User).filter(User.username == appt.patient_id, User.role == UserRole.patient).first()
+        doctor = db.query(User).filter(User.username == appt.doctor_id, User.role == UserRole.doctor).first()
+        if not patient or not doctor:
+            raise HTTPException(status_code=404, detail="Patient or doctor account not found")
+        role = current_user.role.value if isinstance(current_user.role, UserRole) else str(current_user.role)
+        if role == UserRole.patient.value:
+            if appt.patient_id != current_user.username:
+                raise HTTPException(status_code=403, detail="Patients can only book appointments for themselves")
+            if appt.status not in {"Scheduled", "Requested"}:
+                raise HTTPException(status_code=403, detail="Patients cannot set appointment status")
+            appt.status = "Requested"
+        elif role not in {UserRole.admin.value, UserRole.frontdesk.value}:
+            raise HTTPException(status_code=403, detail="Front desk access required")
+
+        appointment_type = (appt.type or "in-person").strip().lower()
+        if appointment_type not in {"in-person", "in person"}:
+            raise HTTPException(
+                status_code=503,
+                detail="Online meeting creation is not configured. Please schedule an in-person visit.",
+            )
+        appt.type = "in-person"
+
         # Normalize to naive UTC to avoid comparison errors with DB (which usually stores naive UTC)
         check_date = appt.date
         if check_date.tzinfo is not None:
-             check_date = check_date.replace(tzinfo=None)
+             check_date = check_date.astimezone(timezone.utc).replace(tzinfo=None)
 
         # Check for overlapping appointments (15 min buffer)
         conflict = await mongo_db.appointments.find_one({
@@ -87,63 +124,22 @@ async def create_appointment(appt: AppointmentData):
         appt_dict = appt.dict()
         appt_dict["date"] = check_date # Use normalized date
         
-        # ... rest of logic
-        # For now, just logging the error if it fails later
-        appt_dict = appt.dict()
-        
-        # Auto-generate Google Meet link for online appointments
-        if appt.type and appt.type.lower() == "online":
-            import hashlib
-            meet_code = hashlib.md5(f"{appt.patient_id}{appt.doctor_id}{datetime.utcnow()}".encode()).hexdigest()[:10]
-            meet_url = f"https://meet.google.com/{meet_code}"
-            appt_dict["meet_url"] = meet_url
-            
-            # Store in telemedicine meetings collection
-            meeting_data = {
-                "meeting_code": meet_code,
-                "join_url": meet_url,
-                "appointment_id": str(appt_dict.get("_id", "pending")),
-                "patient_id": appt.patient_id,
-                "doctor_id": appt.doctor_id,
-                "created_at": datetime.utcnow()
-            }
-            await mongo_db.telemedicine_meetings.insert_one(meeting_data)
-        
         # Insert Appointment
         result = await mongo_db.appointments.insert_one(appt_dict)
         appointment_id = str(result.inserted_id)
         
-        # Update meeting with actual appointment ID
-        if appt.type and appt.type.lower() == "online":
-            await mongo_db.telemedicine_meetings.update_one(
-                {"meeting_code": meet_code},
-                {"$set": {"appointment_id": appointment_id}}
-            )
-        
         # Send confirmation email
         try:
-            from utils.email import send_email, appointment_confirmation_email, send_telemedicine_invite
+            from utils.email import send_email, appointment_confirmation_email
             
-            # TODO: Get patient email from user database
-            patient_email = "kubendra2004@gmail.com"  # Recipient email
+            patient_email = patient.email
             
-            if appt.type and appt.type.lower() == "online":
-                # Send telemedicine invite
-                subject = "🎥 Your Virtual Appointment is Scheduled - HealthForesight"
-                html = send_telemedicine_invite(
-                    patient_name="Patient",  # TODO: Get from user DB
-                    meet_url=appt_dict["meet_url"],
-                    appointment_date=appt.date
-                )
-            else:
-                # Send regular appointment confirmation
-                subject = "✅ Appointment Confirmed - HealthForesight"
-                html = appointment_confirmation_email(
-                    patient_name="Patient",  # TODO: Get from user DB
-                    doctor_name=f"Doctor {appt.doctor_id}",  # TODO: Get from user DB
-                    appointment_date=appt.date
-                )
-            
+            subject = "Appointment Confirmed - HealthForesight"
+            html = appointment_confirmation_email(
+                patient_name=patient.username,
+                doctor_name=doctor.username,
+                appointment_date=appt.date
+            )
             await send_email(patient_email, subject, html)
         except Exception as email_error:
             print(f"⚠️ Email sending failed: {email_error}")
@@ -166,22 +162,31 @@ async def create_appointment(appt: AppointmentData):
                 "date": str(appt.date)
             })
             
-        response = {"id": appointment_id, "message": "Appointment scheduled/requested"}
-        if appt.type and appt.type.lower() == "online":
-            response["meet_url"] = appt_dict["meet_url"]
-            response["meet_code"] = meet_code
-            
-        return response
+        return {"id": appointment_id, "message": "Appointment scheduled/requested"}
     except HTTPException as he:
         raise he
     except Exception as e:
-        import traceback
-        with open("k:/Project Programs/healths/backend/error_log.txt", "w") as f:
-            f.write(traceback.format_exc())
+        print(f"Appointment creation failed: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
 @router.get("/appointments", response_model=List[dict])
-async def get_appointments(doctor_id: Optional[str] = None, patient_id: Optional[str] = None):
+async def get_appointments(doctor_id: Optional[str] = None, patient_id: Optional[str] = None, current_user: User = Depends(get_current_user)):
+    role = current_user.role.value if isinstance(current_user.role, UserRole) else str(current_user.role)
+    if role == UserRole.patient.value:
+        if patient_id and patient_id != current_user.username:
+            raise HTTPException(status_code=403, detail="Patients can only view their own appointments")
+        if doctor_id:
+            raise HTTPException(status_code=403, detail="Patients cannot list appointments by doctor")
+        patient_id = current_user.username
+    elif role == UserRole.doctor.value:
+        if doctor_id and doctor_id != current_user.username:
+            raise HTTPException(status_code=403, detail="Doctors can only view their own appointments")
+        doctor_id = current_user.username
+        if patient_id:
+            await require_patient_access(patient_id, current_user)
+    elif role not in {UserRole.admin.value, UserRole.frontdesk.value}:
+        raise HTTPException(status_code=403, detail="Appointment access required")
+
     query = {}
     if doctor_id:
         query["doctor_id"] = doctor_id
@@ -200,13 +205,24 @@ async def get_appointments(doctor_id: Optional[str] = None, patient_id: Optional
     return serialize_list(appointments)
 
 @router.put("/appointments/{id}")
-async def update_appointment(id: str, update_data: dict):
+async def update_appointment(id: str, update_data: dict, current_user: User = Depends(get_current_user)):
     try:
         # Extract status from the request body
         if "status" not in update_data:
             raise HTTPException(status_code=400, detail="Status is required")
             
         status = update_data["status"]
+        if status not in {"Requested", "Scheduled", "Confirmed", "Accepted", "Rejected", "Cancelled", "Completed"}:
+            raise HTTPException(status_code=400, detail="Invalid appointment status")
+        appointment = await mongo_db.appointments.find_one({"_id": ObjectId(id)})
+        if not appointment:
+            raise HTTPException(status_code=404, detail="Appointment not found")
+        role = current_user.role.value if isinstance(current_user.role, UserRole) else str(current_user.role)
+        if role == UserRole.doctor.value:
+            if appointment.get("doctor_id") != current_user.username:
+                raise HTTPException(status_code=403, detail="Doctors can only update their own appointments")
+        elif role not in {UserRole.admin.value, UserRole.frontdesk.value}:
+            raise HTTPException(status_code=403, detail="Front desk access required")
         result = await mongo_db.appointments.update_one(
             {"_id": ObjectId(id)},
             {"$set": {"status": status}}
@@ -220,33 +236,40 @@ async def update_appointment(id: str, update_data: dict):
         raise HTTPException(status_code=500, detail=str(e))
 
 @router.delete("/appointments/{id}")
-async def delete_appointment(id: str):
+async def delete_appointment(id: str, _user: User = Depends(require_roles(UserRole.admin, UserRole.frontdesk))):
     try:
+        if not ObjectId.is_valid(id):
+            raise HTTPException(status_code=400, detail="Invalid appointment ID")
         result = await mongo_db.appointments.delete_one({"_id": ObjectId(id)})
         if result.deleted_count == 0:
             raise HTTPException(status_code=404, detail="Appointment not found")
         return {"message": "Appointment cancelled"}
     except Exception as e:
+        if isinstance(e, HTTPException):
+            raise e
         raise HTTPException(status_code=500, detail=str(e))
 
 # --- Billing ---
 
 @router.post("/bills", response_model=dict)
-async def create_bill(bill: BillData):
+async def create_bill(bill: BillData, current_user: User = Depends(require_roles(UserRole.admin, UserRole.frontdesk))):
     try:
         result = await mongo_db.bills.insert_one(bill.dict())
         return {"id": str(result.inserted_id), "message": "Invoice generated"}
     except Exception as e:
+        if isinstance(e, HTTPException):
+            raise e
         raise HTTPException(status_code=500, detail=str(e))
 
 @router.get("/bills/{patient_id}", response_model=List[dict])
-async def get_bills(patient_id: str):
+async def get_bills(patient_id: str, current_user: User = Depends(get_current_user)):
+    await require_patient_access(patient_id, current_user, allow_frontdesk=True)
     cursor = mongo_db.bills.find({"patient_id": patient_id})
     bills = await cursor.to_list(length=100)
     return serialize_list(bills)
 
 @router.post("/bills/{id}/pay")
-async def pay_bill(id: str):
+async def pay_bill(id: str, _user: User = Depends(require_roles(UserRole.admin, UserRole.frontdesk))):
     try:
         if not ObjectId.is_valid(id):
             raise HTTPException(status_code=400, detail="Invalid Bill ID format")
@@ -271,27 +294,42 @@ async def pay_bill(id: str):
     except HTTPException as he:
         raise he
     except Exception as e:
+        if isinstance(e, HTTPException):
+            raise e
         raise HTTPException(status_code=500, detail=str(e))
 
 # --- Notifications ---
 
 @router.post("/notifications", response_model=dict)
-async def send_notification(notif: NotificationData):
+async def send_notification(notif: NotificationData, _user: User = Depends(require_roles(UserRole.admin, UserRole.frontdesk, UserRole.doctor))):
     try:
+        if _user.role == UserRole.doctor:
+            await require_patient_access(notif.user_id, _user)
         result = await mongo_db.notifications.insert_one(notif.dict())
         return {"id": str(result.inserted_id), "message": "Notification sent"}
     except Exception as e:
+        if isinstance(e, HTTPException):
+            raise e
         raise HTTPException(status_code=500, detail=str(e))
 
 @router.get("/notifications/{user_id}", response_model=List[dict])
-async def get_notifications(user_id: str):
+async def get_notifications(user_id: str, current_user: User = Depends(get_current_user)):
+    if current_user.username != user_id and current_user.role != UserRole.admin:
+        raise HTTPException(status_code=403, detail="You can only view your own notifications")
     cursor = mongo_db.notifications.find({"user_id": user_id})
     notifs = await cursor.to_list(length=100)
     return serialize_list(notifs)
 
 @router.put("/notifications/{id}/read")
-async def mark_notification_read(id: str):
+async def mark_notification_read(id: str, current_user: User = Depends(get_current_user)):
     try:
+        if not ObjectId.is_valid(id):
+            raise HTTPException(status_code=400, detail="Invalid notification ID")
+        notification = await mongo_db.notifications.find_one({"_id": ObjectId(id)})
+        if not notification:
+            raise HTTPException(status_code=404, detail="Notification not found")
+        if notification.get("user_id") != current_user.username and current_user.role != UserRole.admin:
+            raise HTTPException(status_code=403, detail="You can only update your own notifications")
         result = await mongo_db.notifications.update_one(
             {"_id": ObjectId(id)},
             {"$set": {"read": True}}
@@ -300,4 +338,6 @@ async def mark_notification_read(id: str):
             raise HTTPException(status_code=404, detail="Notification not found")
         return {"message": "Marked as read"}
     except Exception as e:
+        if isinstance(e, HTTPException):
+            raise e
         raise HTTPException(status_code=500, detail=str(e))

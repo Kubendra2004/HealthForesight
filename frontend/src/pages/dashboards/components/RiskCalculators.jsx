@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { API_BASE_URL } from '../../../lib/api';
 import { 
   Box, Paper, Typography, TextField, Button, Grid, Tab, Tabs, 
   Chip, CircularProgress, Alert, Divider, Stack 
@@ -100,7 +101,7 @@ const HeartRiskCalculator = () => {
         try {
             // Assume user token is valid
             const token = localStorage.getItem('token');
-            const res = await fetch('http://localhost:8000/ml/predict/heart', {
+            const res = await fetch(`${API_BASE_URL}/ml/predict/heart`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
                 body: JSON.stringify(form)
@@ -150,7 +151,7 @@ const ClusteringCalculator = () => {
         setLoading(true); setError(null);
         try {
             const token = localStorage.getItem('token');
-            const res = await fetch('http://localhost:8000/ml/predict/cluster', {
+            const res = await fetch(`${API_BASE_URL}/ml/predict/cluster`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
                 body: JSON.stringify(form) // Send partial data, backend handles missing fields via Optional
@@ -195,7 +196,7 @@ const ReadmissionCalculator = () => {
         setLoading(true); setError(null);
         try {
              const token = localStorage.getItem('token');
-            const res = await fetch('http://localhost:8000/ml/predict/readmission', {
+             const res = await fetch(`${API_BASE_URL}/ml/predict/readmission`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
                 body: JSON.stringify(form)

@@ -1,4 +1,6 @@
 import React, { useState, useEffect } from "react";
+import { API_BASE_URL } from '../../lib/api';
+import { API_BASE_URL } from '../../lib/api';
 import { useNavigate } from "react-router-dom";
 import { Box, Grid, Card, CardContent, Typography, Button, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Paper, Chip, Tabs, Tab, IconButton, Dialog, DialogTitle, DialogContent, DialogActions, TextField, FormControl, InputLabel, Select, MenuItem, Alert } from "@mui/material";
 import { motion, AnimatePresence } from "framer-motion";
@@ -160,7 +162,7 @@ const OverviewSection = ({ setActive }) => {
   useEffect(() => {
     const fetchStats = async () => {
       try {
-        const res = await fetch(`${import.meta.env.VITE_API_URL}/admin/overview-stats`, {
+        const res = await fetch(`${API_BASE_URL}/admin/overview-stats`, {
             headers: { Authorization: `Bearer ${localStorage.getItem("token")}` }
         });
         if (res.ok) {
@@ -289,7 +291,7 @@ const UserManagementSection = () => {
     }, []);
 
     const fetchUsers = () => {
-        fetch("http://localhost:8000/admin/users", {
+        fetch(`${API_BASE_URL}/admin/users`, {
             headers: { Authorization: `Bearer ${localStorage.getItem("token")}` }
         })
         .then(res => res.ok ? res.json() : [])
@@ -308,7 +310,7 @@ const UserManagementSection = () => {
         else if (tabValue === 2) roleFilter = "&role=doctor";
         else if (tabValue === 3) roleFilter = "&role=staff";
         
-        const url = `${import.meta.env.VITE_API_URL}/admin/export/${type}?format=${format}${roleFilter}`;
+        const url = `${API_BASE_URL}/admin/export/${type}?format=${format}${roleFilter}`;
         
         fetch(url, {
             headers: { Authorization: `Bearer ${token}` }
@@ -357,7 +359,7 @@ const UserManagementSection = () => {
 
     const handleEditSave = async () => {
         try {
-            const res = await fetch(`${import.meta.env.VITE_API_URL}/admin/users/${currentUser.id}`, {
+            const res = await fetch(`${API_BASE_URL}/admin/users/${currentUser.id}`, {
                 method: "PUT",
                 headers: { 
                     "Content-Type": "application/json",
@@ -512,7 +514,7 @@ const AuditLogsSection = () => {
     const [chatUsageLogs, setChatUsageLogs] = useState([]);
     
     useEffect(() => {
-        fetch(`${import.meta.env.VITE_API_URL}/admin/audit/logs`, {
+        fetch(`${API_BASE_URL}/admin/audit/logs`, {
             headers: { Authorization: `Bearer ${localStorage.getItem("token")}` }
         })
         .then(res => res.ok ? res.json() : [])
@@ -524,7 +526,7 @@ const AuditLogsSection = () => {
         }) 
         .catch(err => console.error(err));
 
-        fetch(`${import.meta.env.VITE_API_URL}/admin/audit/chatbot-usage`, {
+        fetch(`${API_BASE_URL}/admin/audit/chatbot-usage`, {
             headers: { Authorization: `Bearer ${localStorage.getItem("token")}` }
         })
         .then(res => res.ok ? res.json() : { logs: [] })
@@ -650,7 +652,7 @@ const ReportsSection = () => {
     const [models, setModels] = useState([]);
 
     useEffect(() => {
-        fetch(`${import.meta.env.VITE_API_URL}/admin/models/stats`, {
+        fetch(`${API_BASE_URL}/admin/models/stats`, {
             headers: { Authorization: `Bearer ${localStorage.getItem("token")}` }
         })
         .then(res => res.json())
@@ -667,7 +669,7 @@ const ReportsSection = () => {
 
     const handleRetrain = async () => {
         try {
-            await fetch(`${import.meta.env.VITE_API_URL}/admin/models/retrain?model_name=heart`, { 
+            await fetch(`${API_BASE_URL}/admin/models/retrain?model_name=heart`, {
                 method: "POST",
                 headers: { Authorization: `Bearer ${localStorage.getItem("token")}` }
             });
@@ -681,9 +683,12 @@ const ReportsSection = () => {
         <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
              <SectionHeader 
                 title="Model Performance" 
-                subtitle="Accuracy metrics for predictive models" 
+                subtitle="Development metrics for predictive models"
                 color="linear-gradient(135deg, #f59e0b 0%, #d97706 100%)" 
             />
+            <Alert severity="warning" sx={{ mb: 3 }}>
+                These development metrics have not been clinically validated and should not guide diagnosis or treatment.
+            </Alert>
             
             <Card sx={{ ...glassStyle, p: 3, mb: 4, height: 400 }}>
                 <Typography variant="h6" fontWeight="bold" gutterBottom>Accuracy Comparison</Typography>
@@ -731,21 +736,24 @@ import { Bar as ChartBar } from "react-chartjs-2";
 const ResourcesSection = () => {
     const [forecastData, setForecastData] = useState({ beds: [], oxygen: [], icu: [], er_visits: [] });
     const [loading, setLoading] = useState(true);
+    const [forecastError, setForecastError] = useState("");
 
     useEffect(() => {
         const fetchForecast = async () => {
             try {
-                const res = await fetch(`${import.meta.env.VITE_API_URL}/ml/predict/resources?days=7`, {
+                const res = await fetch(`${API_BASE_URL}/ml/predict/resources?days=7`, {
                     headers: { Authorization: `Bearer ${localStorage.getItem("token")}` }
                 });
                 if (res.ok) {
                     const data = await res.json();
                     setForecastData(data);
                 } else {
-                    console.error("Failed to fetch resources:", res.status);
+                    const errorData = await res.json().catch(() => ({}));
+                    setForecastError(errorData.detail || "A current resource forecast is not available.");
                 }
             } catch (err) {
                 console.error("Error fetching forecast:", err);
+                setForecastError("Could not load the resource forecast.");
             }
             setLoading(false);
         };
@@ -799,6 +807,8 @@ const ResourcesSection = () => {
              {loading ? (
                  <Box sx={{ display: 'flex', justifyContent: 'center', p: 5 }}><Typography>Loading forecasts...</Typography></Box>
              ) : (
+                 <>
+                 {forecastError && <Alert severity="warning" sx={{ mb: 3 }}>{forecastError}</Alert>}
                  <Box sx={{ 
                      display: 'grid', 
                      gridTemplateColumns: { xs: '1fr', md: '1fr 1fr' }, 
@@ -833,6 +843,7 @@ const ResourcesSection = () => {
                         borderColor="rgba(234, 179, 8, 1)" 
                      />
                  </Box>
+                 </>
              )}
         </motion.div>
     );
@@ -847,7 +858,7 @@ const ToolsSection = () => {
 
     useEffect(() => {
         const fetchHealth = () => {
-            fetch("http://localhost:8000/admin/system/health", {
+            fetch(`${API_BASE_URL}/admin/system/health`, {
                 headers: { Authorization: `Bearer ${localStorage.getItem("token")}` }
             })
             .then(res => res.json())
@@ -867,7 +878,7 @@ const ToolsSection = () => {
     const handlePost = async () => {
         if(!announcement) return;
         try {
-            await fetch("http://localhost:8000/admin/announcement", {
+            await fetch(`${API_BASE_URL}/admin/announcement`, {
                 method: "POST",
                 headers: { 
                     "Content-Type": "application/json", 
@@ -882,7 +893,7 @@ const ToolsSection = () => {
 
     const handleBackup = async () => {
         try {
-            const res = await fetch("http://localhost:8000/admin/system/backup", {
+            const res = await fetch(`${API_BASE_URL}/admin/system/backup`, {
                 method: "POST",
                 headers: { Authorization: `Bearer ${localStorage.getItem("token")}` }
             });
@@ -895,7 +906,7 @@ const ToolsSection = () => {
          // Reusing logic via new function or just explicit here
          // For Tools section simplified export:
          const token = localStorage.getItem("token");
-         fetch(`http://localhost:8000/admin/export/users?format=csv`, {
+         fetch(`${API_BASE_URL}/admin/export/users?format=csv`, {
              headers: { Authorization: `Bearer ${token}` }
          })
          .then(res => res.blob())

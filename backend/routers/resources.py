@@ -3,12 +3,17 @@ from typing import List, Optional
 from datetime import datetime
 from pydantic import BaseModel
 from database.database import mongo_db
-from database.models_mongo import ResourceData, BedData, BillData
+from database.models_mongo import BillData
+from database.database import get_db
+from database.models_sql import User, UserRole
+from sqlalchemy.orm import Session
 from bson import ObjectId
 from routers.websocket import notify_bed_update
+from auth.authorization import require_roles
 
 router = APIRouter(
-    tags=["Resource & Bed Management"]
+    tags=["Resource & Bed Management"],
+    dependencies=[Depends(require_roles(UserRole.admin, UserRole.frontdesk))],
 )
 
 # --- Helpers ---
@@ -17,7 +22,7 @@ def serialize_list(cursor_list):
 
 
 @router.get("/resources/current")
-async def get_current_resources():
+async def get_current_resources(db: Session = Depends(get_db)):
     """Return the current operational resource snapshot for the front desk dashboard."""
     beds_total = await mongo_db.beds.count_documents({})
     beds_occupied = await mongo_db.beds.count_documents({"status": "Occupied"})
@@ -30,9 +35,9 @@ async def get_current_resources():
     oxygen_item = await mongo_db.inventory.find_one({"category": "Medicine", "name": {"$regex": "oxygen", "$options": "i"}})
     oxygen_count = int(oxygen_item.get("quantity", 0)) if oxygen_item else 0
 
-    staff_count = await mongo_db.users.count_documents({"role": {"$in": ["doctor", "frontdesk", "admin"]}})
+    staff_count = db.query(User).filter(User.role.in_([UserRole.doctor, UserRole.frontdesk, UserRole.admin])).count()
 
-    return [
+    resources = [
         {
             "type": "beds",
             "count": beds_occupied,
@@ -62,6 +67,50 @@ async def get_current_resources():
             "last_updated": datetime.utcnow(),
         },
     ]
+    resource_snapshots = await mongo_db.resource_snapshots.find({}).to_list(100)
+    resource_index = {item["type"]: item for item in resources}
+    for snapshot in resource_snapshots:
+        snapshot.pop("_id", None)
+        if snapshot["type"] in resource_index:
+            resource_index[snapshot["type"]].update(snapshot)
+        else:
+            resources.append(snapshot)
+    return resources
+
+
+class ResourceUpdate(BaseModel):
+    type: str
+    current: int
+    capacity: int
+    unit: str = "units"
+
+
+@router.post("/resources/update")
+async def update_resource(data: ResourceUpdate):
+    """Record a manually entered resource snapshot from the front desk."""
+    if data.current < 0 or data.capacity < 0 or data.current > data.capacity:
+        raise HTTPException(status_code=422, detail="Resource values must be non-negative and current cannot exceed capacity")
+    resource_type = data.type.strip().lower()
+    if not resource_type:
+        raise HTTPException(status_code=422, detail="Resource type is required")
+    status = "Critical" if data.capacity and data.current / data.capacity >= 0.9 else (
+        "Warning" if data.capacity and data.current / data.capacity >= 0.75 else "Normal"
+    )
+    updated_at = datetime.utcnow()
+    snapshot = {
+        "type": resource_type,
+        "count": data.current,
+        "total_capacity": data.capacity,
+        "unit": data.unit,
+        "status": status,
+        "last_updated": updated_at,
+    }
+    await mongo_db.resource_snapshots.update_one(
+        {"type": resource_type},
+        {"$set": snapshot},
+        upsert=True,
+    )
+    return {"message": "Resource snapshot updated", "resource": snapshot}
 
 # --- Beds ---
 
@@ -79,43 +128,50 @@ class BedDeallocation(BaseModel):
     bed_id: str
 
 @router.post("/beds/allocate")
-async def allocate_bed(data: BedAllocation):
+async def allocate_bed(data: BedAllocation, db: Session = Depends(get_db)):
     try:
+        if not ObjectId.is_valid(data.bed_id):
+            raise HTTPException(status_code=400, detail="Invalid bed ID")
+        patient = db.query(User).filter(User.username == data.patient_id, User.role == UserRole.patient).first()
+        if not patient:
+            raise HTTPException(status_code=404, detail="Patient account not found")
         bed = await mongo_db.beds.find_one({"_id": ObjectId(data.bed_id)})
         if not bed:
             raise HTTPException(status_code=404, detail="Bed not found")
-        if bed.get("status") != "Available":
-            raise HTTPException(status_code=400, detail="Bed is not available")
-            
-        await mongo_db.beds.update_one(
-            {"_id": ObjectId(data.bed_id)},
+        result = await mongo_db.beds.update_one(
+            {"_id": ObjectId(data.bed_id), "status": "Available"},
             {"$set": {"status": "Occupied", "patient_id": data.patient_id}}
         )
+        if result.modified_count == 0:
+            raise HTTPException(status_code=409, detail="Bed is no longer available")
         
         # Notify Real-time
         await notify_bed_update(data.bed_id, "Occupied")
         
         return {"message": "Bed allocated successfully"}
+    except HTTPException:
+        raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
 @router.post("/beds/deallocate")
 async def deallocate_bed(data: BedDeallocation):
     try:
+        if not ObjectId.is_valid(data.bed_id):
+            raise HTTPException(status_code=400, detail="Invalid bed ID")
         bed = await mongo_db.beds.find_one({"_id": ObjectId(data.bed_id)})
         if not bed:
             raise HTTPException(status_code=404, detail="Bed not found")
-        if bed.get("status") != "Occupied":
-            raise HTTPException(status_code=400, detail="Bed is not occupied")
-            
         patient_id = bed.get("patient_id")
         bed_type = bed.get("type", "General")
         
         # 1. Update Bed Status
-        await mongo_db.beds.update_one(
-            {"_id": ObjectId(data.bed_id)},
+        result = await mongo_db.beds.update_one(
+            {"_id": ObjectId(data.bed_id), "status": "Occupied"},
             {"$set": {"status": "Available", "patient_id": None}}
         )
+        if result.modified_count == 0:
+            raise HTTPException(status_code=409, detail="Bed is no longer occupied")
         
         # Notify Real-time
         await notify_bed_update(data.bed_id, "Available")
@@ -142,12 +198,16 @@ async def deallocate_bed(data: BedDeallocation):
             await mongo_db.bills.insert_one(bill.dict())
             
         return {"message": "Bed deallocated and bill generated"}
+    except HTTPException:
+        raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
 @router.put("/billing/{bill_id}")
 async def update_bill(bill_id: str, data: BillData):
     try:
+        if not ObjectId.is_valid(bill_id):
+            raise HTTPException(status_code=400, detail="Invalid bill ID")
         # Convert Pydantic model to dict, excluding _id
         bill_dict = data.dict(exclude={'id', '_id', 'date', 'status'}) 
         
@@ -162,11 +222,15 @@ async def update_bill(bill_id: str, data: BillData):
                  
         return {"message": "Bill updated successfully"}
     except Exception as e:
+        if isinstance(e, HTTPException):
+            raise e
         raise HTTPException(status_code=500, detail=str(e))
 
 @router.post("/billing/{bill_id}/pay")
 async def pay_bill(bill_id: str):
     try:
+        if not ObjectId.is_valid(bill_id):
+            raise HTTPException(status_code=400, detail="Invalid bill ID")
         bill = await mongo_db.bills.find_one({"_id": ObjectId(bill_id)})
         if not bill:
             raise HTTPException(status_code=404, detail="Bill not found")
@@ -175,10 +239,12 @@ async def pay_bill(bill_id: str):
              return {"message": "Bill already paid"}
 
         # 1. Update Bill Status
-        await mongo_db.bills.update_one(
-            {"_id": ObjectId(bill_id)},
+        result = await mongo_db.bills.update_one(
+            {"_id": ObjectId(bill_id), "status": {"$ne": "Paid"}},
             {"$set": {"status": "Paid"}}
         )
+        if result.modified_count == 0:
+            return {"message": "Bill already paid"}
         
         # 2. Update Daily Sales
         today_str = datetime.utcnow().strftime('%Y-%m-%d')
@@ -194,6 +260,8 @@ async def pay_bill(bill_id: str):
         )
 
         return {"message": "Payment successful"}
+    except HTTPException:
+        raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
@@ -207,7 +275,7 @@ async def get_bills():
         raise HTTPException(status_code=500, detail=str(e))
 
 @router.get("/operations/stats")
-async def get_ops_stats():
+async def get_ops_stats(db: Session = Depends(get_db)):
     try:
         today_str = datetime.utcnow().strftime('%Y-%m-%d')
         sales_doc = await mongo_db.daily_sales.find_one({"date": today_str})
@@ -215,7 +283,7 @@ async def get_ops_stats():
         revenue = sales_doc.get("total_revenue", 0.0) if sales_doc else 0.0
         
         # Count staff - checking doctors for now or users
-        staff_count = await mongo_db.users.count_documents({"role": {"$in": ["doctor", "frontdesk"]}})
+        staff_count = db.query(User).filter(User.role.in_([UserRole.doctor, UserRole.frontdesk])).count()
         
         return {
             "daily_revenue": revenue,

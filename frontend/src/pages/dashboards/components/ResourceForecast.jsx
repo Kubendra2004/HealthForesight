@@ -4,6 +4,7 @@ import {
 } from 'recharts';
 import { Box, Paper, Typography, CircularProgress, Alert } from '@mui/material';
 import { TimelineRounded } from '@mui/icons-material';
+import { API_BASE_URL } from '../../../lib/api';
 
 const glassCard = {
     background: 'rgba(255, 255, 255, 0.65)',
@@ -22,7 +23,7 @@ const ResourceForecast = () => {
         const fetchForecast = async () => {
             try {
                 const token = localStorage.getItem('token');
-                const res = await fetch('http://localhost:8000/ml/predict/resources?days=7', {
+                const res = await fetch(`${API_BASE_URL}/ml/predict/resources?days=7`, {
                     headers: { 'Authorization': `Bearer ${token}` }
                 });
                 

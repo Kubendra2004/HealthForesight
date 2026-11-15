@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import { API_BASE_URL, authHeaders } from "../../../lib/api";
 import { Bar } from "react-chartjs-2";
 import { motion } from "framer-motion";
 import {
@@ -27,6 +28,7 @@ ChartJS.register(
 export default function PatientResourceForecast() {
   const [forecastData, setForecastData] = useState({ beds: [], oxygen: [] });
   const [loading, setLoading] = useState(true);
+  const [forecastError, setForecastError] = useState("");
 
   useEffect(() => {
     fetchForecast();
@@ -35,7 +37,8 @@ export default function PatientResourceForecast() {
   const fetchForecast = async () => {
     try {
       const res = await fetch(
-        "http://localhost:8000/ml/predict/resources?days=7"
+        `${API_BASE_URL}/ml/predict/resources?days=7`,
+        { headers: authHeaders() }
       );
       if (res.ok) {
         const data = await res.json();
@@ -48,10 +51,12 @@ export default function PatientResourceForecast() {
           er_visits: data.er_visits || [],
         });
       } else {
-        console.error("Forecast fetch failed with status:", res.status);
+        const errorData = await res.json().catch(() => ({}));
+        setForecastError(errorData.detail || "A current resource forecast is not available.");
       }
     } catch (err) {
       console.error("Error fetching forecast:", err);
+      setForecastError("Could not load the resource forecast.");
     }
     setLoading(false);
   };
@@ -122,6 +127,14 @@ export default function PatientResourceForecast() {
       >
         <div style={{ fontSize: "2rem", marginBottom: "1rem" }}>📊</div>
         <div>Loading resource forecast...</div>
+      </div>
+    );
+  }
+
+  if (forecastError) {
+    return (
+      <div style={{ padding: "1.5rem", color: "#92400e", background: "#fffbeb", borderRadius: "12px" }}>
+        {forecastError}
       </div>
     );
   }

@@ -1,4 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
+import { API_BASE_URL } from '../../../lib/api';
 import {
   Avatar,
   Box,
@@ -32,7 +33,7 @@ const PatientChat = ({ patientId }) => {
   const [loading, setLoading] = useState(false);
   const messagesEndRef = useRef(null);
   const baseInputRef = useRef('');
-  const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:8000';
+  const apiUrl = API_BASE_URL;
   const storageKey = `patient_chat_history_${patientId}`;
 
   const scrollToBottom = () => {

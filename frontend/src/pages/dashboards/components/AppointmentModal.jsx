@@ -93,20 +93,19 @@ const AppointmentModal = ({ open, onClose, onSubmit, doctors }) => {
                    </Box>
 
                    {/* Video Option */}
-                   <Box 
-                     onClick={() => setType('video')}
+                   <Box
                      sx={{ 
-                       p: 2, borderRadius: 2, cursor: 'pointer',
-                       border: `2px solid ${type === 'video' ? '#8b5cf6' : '#e2e8f0'}`,
-                       bgcolor: type === 'video' ? '#f5f3ff' : 'transparent',
+                       p: 2, borderRadius: 2, cursor: 'not-allowed', opacity: 0.55,
+                       border: '2px solid #e2e8f0',
+                       bgcolor: 'transparent',
                        transition: 'all 0.2s',
                        display: 'flex', alignItems: 'center'
                      }}
                    >
-                     <Radio value="video" checked={type === 'video'} sx={{ color: '#8b5cf6 !important' }} />
+                     <Radio value="video" disabled sx={{ color: '#8b5cf6 !important' }} />
                      <Box>
-                       <Typography fontWeight="bold" color="#1e293b">Video Consultation</Typography>
-                       <Typography variant="body2" color="#64748b">Connect with a doctor remotely via secure video.</Typography>
+                       <Typography fontWeight="bold" color="#1e293b">Video Consultation (Unavailable)</Typography>
+                       <Typography variant="body2" color="#64748b">Online meeting setup is not configured yet.</Typography>
                      </Box>
                    </Box>
 

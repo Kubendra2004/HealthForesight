@@ -3,22 +3,27 @@ from starlette.middleware.base import BaseHTTPMiddleware
 from database.database import mongo_db
 from datetime import datetime
 import time
+from jose import JWTError, jwt
+from auth.auth import ALGORITHM, SECRET_KEY
 
 class AuditMiddleware(BaseHTTPMiddleware):
     """
-    HIPAA-compliant audit logging middleware.
-    Tracks all API access with user, timestamp, method, endpoint, and response status.
+    Audit request metadata without recording bearer credentials or query values.
     """
     
     async def dispatch(self, request: Request, call_next):
         # Start timer
         start_time = time.time()
         
-        # Extract user info from headers (if authenticated)
+        # Resolve the token subject without storing any part of the credential.
         user = None
-        if "authorization" in request.headers:
-            # User would be extracted from JWT in production
-            user = request.headers.get("authorization", "").replace("Bearer ", "")[:20]
+        authorization = request.headers.get("authorization", "")
+        if authorization.lower().startswith("bearer "):
+            try:
+                payload = jwt.decode(authorization[7:], SECRET_KEY, algorithms=[ALGORITHM])
+                user = payload.get("sub")
+            except JWTError:
+                user = None
         
         # Process request
         response = await call_next(request)
@@ -32,7 +37,6 @@ class AuditMiddleware(BaseHTTPMiddleware):
             "user": user or "anonymous",
             "method": request.method,
             "endpoint": str(request.url.path),
-            "query_params": dict(request.query_params),
             "status_code": response.status_code,
             "duration_ms": round(duration * 1000, 2),
             "ip_address": request.client.host if request.client else None

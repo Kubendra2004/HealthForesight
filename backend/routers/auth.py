@@ -116,6 +116,8 @@ def refresh_token(refresh_token: str, db: Session = Depends(get_db)):
     )
     try:
         payload = jwt.decode(refresh_token, SECRET_KEY, algorithms=[ALGORITHM])
+        if payload.get("token_type") != "refresh":
+            raise credentials_exception
         username: str = payload.get("sub")
         role: str = payload.get("role")
         print(f"DEBUG: Decoded Refresh Token. User: {username}, Role: {role}")
@@ -127,10 +129,11 @@ def refresh_token(refresh_token: str, db: Session = Depends(get_db)):
         
     # Verify user exists
     user = db.query(User).filter(User.username == username).first()
-    if user is None:
+    if user is None or not user.is_active:
         print(f"DEBUG: User {username} not found in DB")
         raise credentials_exception
         
+    role = user.role.value if isinstance(user.role, UserRole) else str(user.role)
     access_token = create_access_token(data={"sub": username, "role": role})
     # Optionally rotate refresh token
     new_refresh_token = create_refresh_token(data={"sub": username, "role": role})
@@ -143,7 +146,9 @@ class UserUpdate(BaseModel):
     specialization: Optional[str] = None
 
 @router.get("/profile/{username}")
-def get_user_profile(username: str, db: Session = Depends(get_db)):
+def get_user_profile(username: str, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
+    if current_user.username != username and current_user.role != UserRole.admin:
+        raise HTTPException(status_code=403, detail="Not authorized to view this profile")
     user = db.query(User).filter(User.username == username).first()
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
@@ -185,6 +190,16 @@ def update_user_profile(username: str, update_data: UserUpdate, db: Session = De
 def get_users(role: Optional[str] = None, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
     """Get all users, optionally filtered by role"""
     query = db.query(User)
+    current_role = current_user.role.value if isinstance(current_user.role, UserRole) else str(current_user.role)
+
+    if current_role == UserRole.patient.value:
+        if role not in (None, UserRole.doctor.value):
+            raise HTTPException(status_code=403, detail="Patients may only browse doctors")
+        role = UserRole.doctor.value
+    elif current_role != UserRole.admin.value:
+        if role not in (None, UserRole.doctor.value):
+            raise HTTPException(status_code=403, detail="Only administrators may list this user group")
+        role = UserRole.doctor.value
     
     if role:
         try:

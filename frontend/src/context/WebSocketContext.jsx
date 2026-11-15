@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useEffect, useState, useRef } from 'react';
 import { useAuth } from './AuthContext';
+import { API_BASE_URL } from '../lib/api';
 
 const WebSocketContext = createContext(null);
 
@@ -34,7 +35,7 @@ export const WebSocketProvider = ({ children }) => {
         if (socketRef.current?.readyState === WebSocket.OPEN) return;
 
         // Use VITE_API_URL but replace http with ws
-        const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:8000';
+        const apiUrl = API_BASE_URL.startsWith('/') ? `${window.location.origin}${API_BASE_URL}` : API_BASE_URL;
         const wsUrl = apiUrl.replace(/^http/, 'ws') + `/ws/connect?token=${token}`;
 
         console.log("🔌 Connecting to WebSocket...", wsUrl);

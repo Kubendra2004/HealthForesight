@@ -27,6 +27,7 @@ import {
 } from "chart.js";
 import { Tooltip } from "@mui/material";
 import axios from "axios";
+import { API_BASE_URL, authHeaders } from '../../lib/api';
 
 ChartJS.register(
   CategoryScale,
@@ -83,8 +84,8 @@ export default function PatientDashboard() {
 
   // Fetch doctors on mount
   useEffect(() => {
-    fetch(`${import.meta.env.VITE_API_URL}/auth/users?role=doctor`, {
-       headers: { Authorization: `Bearer ${localStorage.getItem("token")}` }
+    fetch(`${API_BASE_URL}/auth/users?role=doctor`, {
+       headers: authHeaders()
     })
       .then(res => res.ok ? res.json() : [])
       .then(data => setDoctors(data))
@@ -96,15 +97,15 @@ export default function PatientDashboard() {
       const appointmentData = {
         patient_id: patientId,
         doctor_id: formData.doctorId,
-        date: `${formData.date} ${formData.time}`,
+        date: new Date(`${formData.date}T${formData.time}`).toISOString(),
         reason: formData.reason,
         status: "Requested",
         type: formData.type, // 'video' or 'in-person'
       };
 
-      const res = await fetch(`${import.meta.env.VITE_API_URL}/frontdesk/appointments`, {
+      const res = await fetch(`${API_BASE_URL}/frontdesk/appointments`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json", ...authHeaders() },
         body: JSON.stringify(appointmentData),
       });
 
@@ -112,7 +113,8 @@ export default function PatientDashboard() {
         alert("Appointment requested successfully!");
         // Refresh appointments
         const updated = await fetch(
-          `${import.meta.env.VITE_API_URL}/frontdesk/appointments?patient_id=${patientId}`
+          `${API_BASE_URL}/frontdesk/appointments?patient_id=${encodeURIComponent(patientId)}`,
+          { headers: authHeaders() }
         );
         if (updated.ok) setAppointments(await updated.json());
       }
@@ -127,7 +129,7 @@ export default function PatientDashboard() {
     try {
        const token = localStorage.getItem("token");
        const res = await axios.post(
-         `${import.meta.env.VITE_API_URL}/reports/generate`, 
+         `${API_BASE_URL}/reports/generate`,
          {}, 
          { 
            headers: { Authorization: `Bearer ${token}` },
@@ -244,8 +246,9 @@ export default function PatientDashboard() {
       form.append("file", selectedFile);
       form.append("patient_id", patientId);
       
-      const res = await fetch(`${import.meta.env.VITE_API_URL}/files/upload`, {
+      const res = await fetch(`${API_BASE_URL}/files/upload`, {
         method: "POST",
+        headers: authHeaders(),
         body: form,
       });
 
@@ -254,7 +257,7 @@ export default function PatientDashboard() {
       // Attempt to process it immediately to trigger predictions
       const data = await res.json();
       if(data.id) {
-           await fetch(`${import.meta.env.VITE_API_URL}/files/process/${data.id}`, { method: 'POST' });
+           await fetch(`${API_BASE_URL}/files/process/${data.id}`, { method: 'POST', headers: authHeaders() });
            // Refresh page or predictions after short delay
            setTimeout(() => window.location.reload(), 1500);
       }
@@ -279,9 +282,9 @@ export default function PatientDashboard() {
       if (!user?.username) return;
 
       try {
-        const res = await fetch(`${import.meta.env.VITE_API_URL}/portal/profile`, {
+        const res = await fetch(`${API_BASE_URL}/portal/profile`, {
           headers: {
-            Authorization: `Bearer ${localStorage.getItem("token")}`,
+            ...authHeaders(),
           },
         });
 
@@ -322,7 +325,7 @@ export default function PatientDashboard() {
   // Fetch files
   useEffect(() => {
     if (patientId) {
-      fetch(`http://localhost:8000/files/patient/${patientId}`)
+      fetch(`${API_BASE_URL}/files/patient/${encodeURIComponent(patientId)}`, { headers: authHeaders() })
         .then((res) => (res.ok ? res.json() : []))
         .then((data) => setFiles(data))
         .catch((err) => console.error("Files fetch error:", err));
@@ -333,7 +336,8 @@ export default function PatientDashboard() {
   useEffect(() => {
     if (patientId) {
       fetch(
-        `http://localhost:8000/frontdesk/appointments?patient_id=${patientId}`
+        `${API_BASE_URL}/frontdesk/appointments?patient_id=${encodeURIComponent(patientId)}`,
+        { headers: authHeaders() }
       )
         .then((res) => (res.ok ? res.json() : []))
         .then((data) => setAppointments(data))
@@ -353,7 +357,7 @@ export default function PatientDashboard() {
 
         // Fetch heart prediction from MongoDB
         const heartRes = await fetch(
-          `http://localhost:8000/ml/predictions/heart/${patientId}`,
+          `${API_BASE_URL}/ml/predictions/heart/${encodeURIComponent(patientId)}`,
           { headers }
         );
         if (heartRes.ok) {
@@ -363,7 +367,7 @@ export default function PatientDashboard() {
 
         // Fetch diabetes prediction from MongoDB
         const diabetesRes = await fetch(
-          `http://localhost:8000/ml/predictions/diabetes/${patientId}`,
+          `${API_BASE_URL}/ml/predictions/diabetes/${encodeURIComponent(patientId)}`,
           { headers }
         );
         if (diabetesRes.ok) {
@@ -383,7 +387,7 @@ export default function PatientDashboard() {
       // 1. Fetch the LATEST full profile from backend (ensures we have processed fields like 'obesity')
       // The modal already saved it, so we just GET it now.
       const token = localStorage.getItem("token");
-      const profileRes = await fetch(`${import.meta.env.VITE_API_URL}/portal/profile`, {
+      const profileRes = await fetch(`${API_BASE_URL}/portal/profile`, {
          headers: { Authorization: `Bearer ${token}` }
       });
       
@@ -398,13 +402,13 @@ export default function PatientDashboard() {
 
       // 2. Fetch NEW Predictions (since profile changed)
       // Heart
-      const heartRes = await fetch(`${import.meta.env.VITE_API_URL}/ml/predictions/heart/${patientId}`, {
+      const heartRes = await fetch(`${API_BASE_URL}/ml/predictions/heart/${encodeURIComponent(patientId)}`, {
           headers: { Authorization: `Bearer ${token}` }
       });
       if (heartRes.ok) setHeartPrediction(await heartRes.json());
 
       // Diabetes
-      const diabetesRes = await fetch(`${import.meta.env.VITE_API_URL}/ml/predictions/diabetes/${patientId}`, {
+      const diabetesRes = await fetch(`${API_BASE_URL}/ml/predictions/diabetes/${encodeURIComponent(patientId)}`, {
          headers: { Authorization: `Bearer ${token}` }
       });
       if (diabetesRes.ok) setDiabetesPrediction(await diabetesRes.json());
@@ -720,9 +724,22 @@ export default function PatientDashboard() {
                           </div>
                         </div>
                         <a
-                          href={`http://localhost:8000/files/download/${file.filename}`}
-                          target="_blank"
-                          rel="noopener noreferrer"
+                          href={`${API_BASE_URL}/files/download/${encodeURIComponent(file.filename)}?report_id=${encodeURIComponent(file.id)}`}
+                          onClick={async (event) => {
+                            event.preventDefault();
+                            try {
+                              const response = await fetch(event.currentTarget.href, { headers: authHeaders() });
+                              if (!response.ok) throw new Error("Download failed");
+                              const blobUrl = URL.createObjectURL(await response.blob());
+                              const link = document.createElement("a");
+                              link.href = blobUrl;
+                              link.download = file.filename;
+                              link.click();
+                              URL.revokeObjectURL(blobUrl);
+                            } catch (error) {
+                              console.error("File download failed:", error);
+                            }
+                          }}
                           style={{
                             padding: "0.5rem 1rem",
                             background: "#3b82f6",
@@ -1243,7 +1260,7 @@ function ProfileSection({ user, onSignOut }) {
       if (!user?.username) return;
 
       try {
-        const res = await fetch("http://localhost:8000/portal/profile", {
+        const res = await fetch(`${API_BASE_URL}/portal/profile`, {
           headers: {
             Authorization: `Bearer ${localStorage.getItem("token")}`,
           },

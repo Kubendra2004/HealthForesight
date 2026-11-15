@@ -98,23 +98,26 @@ def update_user(user_id: int, user_update: UserUpdate, db: Session = Depends(get
     return {"message": "User updated successfully"}
 
 @router.get("/resources")
-def get_admin_resources(db: Session = Depends(get_db), admin: User = Depends(get_current_admin)):
-    # Enhanced data for Recharts
-    # Beds: Occupied vs Available
-    # ICU: Occupied vs Available
-    # Oxygen: Just a value for gauge/area
+async def get_admin_resources(admin: User = Depends(get_current_admin)):
+    beds_total = await mongo_db.beds.count_documents({})
+    beds_occupied = await mongo_db.beds.count_documents({"status": "Occupied"})
+    icu_total = await mongo_db.beds.count_documents({"type": "ICU"})
+    icu_occupied = await mongo_db.beds.count_documents({"type": "ICU", "status": "Occupied"})
+    oxygen = await mongo_db.inventory.find_one({"name": {"$regex": "oxygen", "$options": "i"}})
+    oxygen_count = int(oxygen.get("quantity", 0)) if oxygen else 0
+    oxygen_capacity = int(oxygen.get("capacity", max(oxygen_count, 100))) if oxygen else max(oxygen_count, 100)
     return {
         "beds": [
-            {"name": "Occupied", "value": 165, "fill": "#ef4444"},
-            {"name": "Available", "value": 35, "fill": "#3b82f6"}
+            {"name": "Occupied", "value": beds_occupied, "fill": "#ef4444"},
+            {"name": "Available", "value": max(0, beds_total - beds_occupied), "fill": "#3b82f6"}
         ],
         "icu": [
-             {"name": "Occupied", "value": 42, "fill": "#f59e0b"},
-             {"name": "Available", "value": 8, "fill": "#10b981"}
+             {"name": "Occupied", "value": icu_occupied, "fill": "#f59e0b"},
+             {"name": "Available", "value": max(0, icu_total - icu_occupied), "fill": "#10b981"}
         ],
         "oxygen": [
-            {"name": "Level", "value": 88, "fill": "#3b82f6"},
-            {"name": "Remaining", "value": 12, "fill": "#e2e8f0"}
+            {"name": "Level", "value": oxygen_count, "fill": "#3b82f6"},
+            {"name": "Remaining", "value": max(0, oxygen_capacity - oxygen_count), "fill": "#e2e8f0"}
         ]
     }
 

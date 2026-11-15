@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { API_BASE_URL } from '../../lib/api';
 import { useNavigate } from 'react-router-dom';
 import { 
   Box, Container, Grid, Paper, Typography, Button, 
@@ -78,7 +79,7 @@ const PrescriptionsTab = ({ patients, token, user }) => {
     useEffect(() => {
         const fetchMeds = async () => {
             try {
-                const res = await fetch(`${import.meta.env.VITE_API_URL}/doctor/search_medicines?q=`, {
+                const res = await fetch(`${API_BASE_URL}/doctor/search_medicines?q=`, {
                     headers: { 'Authorization': `Bearer ${token}` }
                 });
                 if (res.ok) {
@@ -94,7 +95,7 @@ const PrescriptionsTab = ({ patients, token, user }) => {
     useEffect(() => {
         const timeoutId = setTimeout(async () => {
             try {
-                const res = await fetch(`${import.meta.env.VITE_API_URL}/doctor/search_patients?q=${patientQuery}`, {
+                const res = await fetch(`${API_BASE_URL}/doctor/search_patients?q=${encodeURIComponent(patientQuery)}`, {
                     headers: { 'Authorization': `Bearer ${token}` }
                 });
                 if (res.status === 401) {
@@ -123,7 +124,7 @@ const PrescriptionsTab = ({ patients, token, user }) => {
             // We favor the object flow from search_patients endpoint
             const pId = selectedPatient.id || selectedPatient; // API expects username usually
             try {
-                const res = await fetch(`http://localhost:8000/doctor/patient_profile/${pId}`, {
+                const res = await fetch(`${API_BASE_URL}/doctor/patient_profile/${encodeURIComponent(pId)}`, {
                     headers: { 'Authorization': `Bearer ${token}` }
                 });
                 if (res.ok) setPatientDetails(await res.json());
@@ -153,7 +154,7 @@ const PrescriptionsTab = ({ patients, token, user }) => {
                 date: new Date().toISOString()
             };
 
-            const res = await fetch(`http://localhost:8000/doctor/prescriptions`, {
+            const res = await fetch(`${API_BASE_URL}/doctor/prescriptions`, {
                 method: 'POST',
                 headers: { 
                     'Content-Type': 'application/json',
@@ -434,7 +435,7 @@ const AIToolsTab = ({ token }) => {
 
     const handlePredict = async () => {
         setLoading(true);
-        const endpoint = tool === 'heart' ? 'http://localhost:8000/ml/predict/heart' : 'http://localhost:8000/ml/predict/diabetes';
+        const endpoint = `${API_BASE_URL}/ml/predict/${tool === 'heart' ? 'heart' : 'diabetes'}`;
         
         // Convert string inputs to proper types
         const payload = Object.entries(formData).reduce((acc, [key, val]) => {
@@ -671,7 +672,7 @@ const AppointmentsTab = ({ token, user, onChatOpen }) => {
 
     const fetchAppointments = async () => {
         try {
-            const res = await fetch(`http://localhost:8000/frontdesk/appointments?doctor_id=${user.username}`, {
+            const res = await fetch(`${API_BASE_URL}/frontdesk/appointments?doctor_id=${encodeURIComponent(user.username)}`, {
                 headers: { 'Authorization': `Bearer ${token}` }
             });
             if (res.ok) {
@@ -684,7 +685,7 @@ const AppointmentsTab = ({ token, user, onChatOpen }) => {
     const handleAction = async (appointmentId, newStatus) => {
         setLoading(true);
         try {
-            const res = await fetch(`http://localhost:8000/frontdesk/appointments/${appointmentId}`, {
+            const res = await fetch(`${API_BASE_URL}/frontdesk/appointments/${appointmentId}`, {
                 method: 'PUT',
                 headers: { 
                     'Content-Type': 'application/json',
@@ -855,10 +856,10 @@ const PatientDetailModal = ({ patientId, open, onClose, token }) => {
         setLoading(true);
         try {
             const [rxRes, apptRes] = await Promise.all([
-                fetch(`http://localhost:8000/patient/prescriptions/${patientId}`, {
+                fetch(`${API_BASE_URL}/patient/prescriptions/${encodeURIComponent(patientId)}`, {
                     headers: { 'Authorization': `Bearer ${token}` }
                 }),
-                fetch(`http://localhost:8000/frontdesk/appointments?patient_id=${patientId}`, {
+                fetch(`${API_BASE_URL}/frontdesk/appointments?patient_id=${encodeURIComponent(patientId)}`, {
                     headers: { 'Authorization': `Bearer ${token}` }
                 })
             ]);
@@ -1274,19 +1275,19 @@ const DoctorDashboard = () => {
             const headers = { 'Authorization': `Bearer ${token}` };
             try {
                 // Profile for Specialization
-                const uRes = await fetch(`http://localhost:8000/auth/profile/${user.username}`, { headers });
+                const uRes = await fetch(`${API_BASE_URL}/auth/profile/${encodeURIComponent(user.username)}`, { headers });
                 if (uRes.ok) {
                     const uData = await uRes.json();
                     if (uData.specialization) setSpecialization(uData.specialization);
                 }
     
                 // Patients
-                const pRes = await fetch(`http://localhost:8000/doctor/patients/${user.username}`, { headers });
+                const pRes = await fetch(`${API_BASE_URL}/doctor/patients/${encodeURIComponent(user.username)}`, { headers });
                 const pData = await pRes.json();
                 setPatients(Array.isArray(pData) ? pData : []);
     
                 // Appt Stats
-                const aRes = await fetch(`http://localhost:8000/frontdesk/appointments?doctor_id=${user.username}`, { headers });
+                const aRes = await fetch(`${API_BASE_URL}/frontdesk/appointments?doctor_id=${encodeURIComponent(user.username)}`, { headers });
                 const aData = await aRes.json();
                 if (Array.isArray(aData)) {
                     setAppointments(aData); // Store full list
