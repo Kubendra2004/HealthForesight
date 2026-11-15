@@ -11,6 +11,8 @@ lightgbm
 joblib
 prophet
 passlib[bcrypt]
+# Passlib 1.7.4's bcrypt backend is incompatible with bcrypt 5.x.
+bcrypt==4.0.1
 python-jose[cryptography]
 python-multipart
 # AI & ML
@@ -19,6 +21,7 @@ chromadb
 sentence-transformers
 shap
 matplotlib
+plotly
 # PDF & Reports
 PyPDF2
 pypdf
