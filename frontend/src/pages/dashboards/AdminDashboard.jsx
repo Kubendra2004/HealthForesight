@@ -660,12 +660,17 @@ const ReportsSection = () => {
         .catch(err => console.error(err));
     }, []);
 
-    const chartData = (models || []).map(m => ({
+    const chartData = (models || []).filter((m) => m.type === 'Disease' && m.accuracy).map(m => ({
         name: m.name ? m.name.split(' ')[0] : 'Unknown',
         fullName: m.name,
         accuracy: parseFloat(m.accuracy) || 0,
         type: m.type
     }));
+    const describeMetric = (model) => {
+        if (model.accuracy) return `Holdout accuracy ${model.accuracy}${model.sample_count ? ` · n=${model.sample_count}` : ''}`;
+        if (Number.isFinite(model.mae) && Number.isFinite(model.baseline_mae)) return `Rolling CV MAE ${model.mae.toFixed(2)} · baseline ${model.baseline_mae.toFixed(2)}`;
+        return model.validation_status?.replaceAll('_', ' ') || 'Metrics unavailable';
+    };
 
     const handleRetrain = async () => {
         try {
@@ -716,7 +721,7 @@ const ReportsSection = () => {
                         <Card sx={{ ...glassStyle, textAlign: 'center', p: 2 }}>
                             <Typography variant="subtitle1" color="text.secondary">{model.type}</Typography>
                             <Typography variant="h6" fontWeight="bold" sx={{ mt: 0.5, mb: 0.5, height: 40, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>{model.name}</Typography>
-                            <Typography variant="body2" fontWeight="700" color="text.secondary">{model.validation_status?.replaceAll('_', ' ') || 'No verified metric'}</Typography>
+                            <Typography variant="body2" fontWeight="700" color="text.secondary">{describeMetric(model)}</Typography>
                         </Card>
                     </Grid>
                 ))}

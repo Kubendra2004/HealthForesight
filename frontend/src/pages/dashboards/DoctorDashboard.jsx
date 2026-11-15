@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { API_BASE_URL } from '../../lib/api';
+import DashboardLayout from "../../components/layout/DashboardLayout";
 import { useNavigate } from 'react-router-dom';
 import { 
   Box, Container, Grid, Paper, Typography, Button, 
@@ -13,7 +14,7 @@ import {
 import { 
   DashboardRounded, PeopleRounded, LocalPharmacyRounded, 
   BiotechRounded, PersonRounded, SearchRounded, 
-  NotificationsRounded, PowerSettingsNewRounded,
+  NotificationsRounded,
   AddRounded, FilterListRounded, CloseRounded, MedicationRounded,
   FavoriteRounded, OpacityRounded, CalendarMonthRounded,
   CheckCircleRounded, CancelRounded, ScheduleRounded,
@@ -1255,7 +1256,7 @@ const NotificationPanel = ({ open, onClose, notifications, onMarkRead }) => {
 
 
 const DoctorDashboard = () => {
-  const { user, token, logout } = useAuth();
+  const { user, token } = useAuth();
   const { lastMessage } = useWebSocket();
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState('home');
@@ -1373,7 +1374,8 @@ const DoctorDashboard = () => {
   };
 
   return (
-    <Box sx={{ minHeight: '100vh', background: 'linear-gradient(135deg, #f0f4ff 0%, #e0e7ff 100%)', pb: 12, overflowX: 'hidden' }}>
+    <DashboardLayout title="Doctor dashboard" role="doctor">
+    <Box sx={{ minHeight: 'calc(100vh - 100px)', background: 'transparent', pb: 12, overflowX: 'hidden' }}>
         <Snackbar open={snackbar.open} autoHideDuration={3000} onClose={() => setSnackbar({ ...snackbar, open: false })}>
             <Alert severity="success">{snackbar.msg}</Alert>
         </Snackbar>
@@ -1390,11 +1392,6 @@ const DoctorDashboard = () => {
                 </Box>
             </Box>
             <Box>
-                <Tooltip title="Sign Out">
-                     <IconButton onClick={() => { logout(); navigate('/login'); }} sx={{ bgcolor: 'white', '&:hover': { bgcolor: '#fee2e2' } }}>
-                          <PowerSettingsNewRounded color="error" />
-                     </IconButton>
-                </Tooltip>
                 <Tooltip title="Notifications">
                     <IconButton onClick={() => setNotifOpen(true)} sx={{ bgcolor: 'white', ml: 1, '&:hover': { bgcolor: '#f0f9ff' } }}>
                         <Badge badgeContent={notifications.filter(n => !n.read).length} color="error">
@@ -1608,6 +1605,7 @@ const DoctorDashboard = () => {
             })}
         </Paper>
     </Box>
+    </DashboardLayout>
   );
 };
 

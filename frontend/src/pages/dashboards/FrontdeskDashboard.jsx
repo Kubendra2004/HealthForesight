@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { API_BASE_URL } from '../../lib/api';
+import DashboardLayout from "../../components/layout/DashboardLayout";
 import { useNavigate } from 'react-router-dom';
 import { 
   Box, Container, Grid, Paper, Typography, Button, 
@@ -14,7 +15,7 @@ import {
 import { 
   DashboardRounded, CalendarMonthRounded, LocalHospitalRounded,
   AttachMoneyRounded, InventoryRounded, PeopleRounded,
-  BedRounded, BarChartRounded, PowerSettingsNewRounded,
+  BedRounded, BarChartRounded,
   AddRounded, CheckCircleRounded, CancelRounded,
   PersonAddRounded, ReceiptRounded, HotelRounded,
   TimelineRounded, WarningRounded, TrendingUpRounded,
@@ -60,7 +61,7 @@ const floatNavStyle = {
 };
 
 const FrontdeskDashboard = () => {
-  const { user, token, logout } = useAuth();
+  const { user, token } = useAuth();
   const { lastMessage } = useWebSocket();
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState('dashboard');
@@ -846,26 +847,11 @@ const FrontdeskDashboard = () => {
   if (loading) return <Box display="flex" justifyContent="center" alignItems="center" minHeight="100vh"><CircularProgress /></Box>;
 
   return (
-    <Box sx={{ minHeight: '100vh', background: 'linear-gradient(135deg, #f0f4ff 0%, #e0e7ff 100%)', pb: 12 }}>
+    <DashboardLayout title="Front desk" role="frontdesk">
+    <Box sx={{ minHeight: 'calc(100vh - 100px)', background: 'transparent', pb: 12 }}>
       <Snackbar open={snackbar.open} autoHideDuration={4000} onClose={() => setSnackbar({ ...snackbar, open: false })}>
         <Alert severity={snackbar.severity}>{snackbar.message}</Alert>
       </Snackbar>
-
-      {/* Header */}
-      <Box px={4} py={3} display="flex" justifyContent="space-between" alignItems="center">
-        <Box display="flex" alignItems="center" gap={2}>
-          <Avatar sx={{ bgcolor: '#6366f1', width: 48, height: 48 }}><LocalHospitalRounded /></Avatar>
-          <Box>
-            <Typography variant="h6" fontWeight="800" color="#1e293b">Front Desk</Typography>
-            <Typography variant="caption" color="text.secondary">{user?.username || 'User'}</Typography>
-          </Box>
-        </Box>
-        <Tooltip title="Sign Out">
-          <IconButton onClick={() => { logout(); navigate('/login'); }} sx={{ bgcolor: 'white', '&:hover': { bgcolor: '#fee2e2' } }}>
-            <PowerSettingsNewRounded color="error" />
-          </IconButton>
-        </Tooltip>
-      </Box>
 
       {/* Main Content */}
       <Container maxWidth="xl" sx={{ mt: 2 }}>
@@ -1024,6 +1010,7 @@ const FrontdeskDashboard = () => {
         initialType={resourceModal.type}
       />
     </Box>
+    </DashboardLayout>
   );
 };
 

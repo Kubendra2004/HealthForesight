@@ -1,90 +1,105 @@
-import pandas as pd
-from prophet import Prophet
-import joblib
+"""Train resource forecasts and compare them with a last-observation baseline."""
+import json
 import os
 
-# Paths
-DATA_PATH = 'data/resources_ai.csv'
-ARTIFACTS_DIR = 'artifacts'
-MODEL_PATH = os.path.join(ARTIFACTS_DIR, 'resource_model_beds.joblib')
+import joblib
+import numpy as np
+import pandas as pd
+from prophet import Prophet
+from prophet.diagnostics import cross_validation
+from sklearn.metrics import mean_absolute_error, mean_squared_error
+
+DATA_PATH = "data/resources_ai.csv"
+ARTIFACTS_DIR = "artifacts"
+METRICS_PATH = os.path.join(ARTIFACTS_DIR, "resource_model_metrics.json")
+TARGETS = ["beds", "icu", "oxygen", "er_visits", "occupancy_rate"]
+
+
+def _load_data():
+    paths = [DATA_PATH, os.path.join(os.path.dirname(os.path.abspath(__file__)), "data", "resources_ai.csv")]
+    for path in paths:
+        if os.path.exists(path):
+            return pd.read_csv(path)
+    raise FileNotFoundError("Resource dataset not found: resources_ai.csv")
+
+
+def _error_metrics(actual, predicted):
+    actual = np.asarray(actual, dtype=float)
+    predicted = np.asarray(predicted, dtype=float)
+    nonzero = np.abs(actual) > 1e-8
+    mape = float(np.mean(np.abs((actual[nonzero] - predicted[nonzero]) / actual[nonzero]))) if nonzero.any() else None
+    denominator = np.abs(actual) + np.abs(predicted)
+    valid = denominator > 1e-8
+    smape = float(np.mean(2 * np.abs(actual[valid] - predicted[valid]) / denominator[valid])) if valid.any() else None
+    return {
+        "mae": float(mean_absolute_error(actual, predicted)),
+        "rmse": float(np.sqrt(mean_squared_error(actual, predicted))),
+        "mape_nonzero_actual": mape,
+        "smape": smape,
+    }
+
 
 def train_model():
-    # 1. Load Data
-    if os.path.exists(DATA_PATH):
-        df = pd.read_csv(DATA_PATH)
-    else:
-        base_dir = os.path.dirname(os.path.abspath(__file__))
-        alt = os.path.join(base_dir, 'data', 'resources_ai.csv')
-        if os.path.exists(alt):
-            df = pd.read_csv(alt)
-        else:
-            print("❌ Dataset not found.")
-            return
+    df = _load_data()
+    required = {"date", "temp", "humidity", "holiday", *TARGETS}
+    missing = sorted(required - set(df.columns))
+    if missing:
+        raise ValueError(f"Resource dataset is missing columns: {missing}")
+    df["date"] = pd.to_datetime(df["date"], errors="coerce")
+    df = df.dropna(subset=["date", *TARGETS, "temp", "humidity", "holiday"]).sort_values("date")
+    os.makedirs(ARTIFACTS_DIR, exist_ok=True)
+    metrics = {}
 
-    print("✅ Dataset Loaded Successfully")
-    print(f"Records: {len(df)}")
-
-    # Targets to forecast
-    targets = ['beds', 'icu', 'oxygen', 'er_visits', 'occupancy_rate']
-    metrics_storage = {}
-
-    if not os.path.exists(ARTIFACTS_DIR):
-        os.makedirs(ARTIFACTS_DIR)
-
-    from prophet.diagnostics import cross_validation, performance_metrics
-    import json
-
-    for target in targets:
-        print(f"\n🚀 Training Prophet Model for: {target}...")
-        
-        # 2. Preprocess for Prophet
-        df_prophet = df.rename(columns={'date': 'ds', target: 'y'})
-        df_prophet['ds'] = pd.to_datetime(df_prophet['ds'])
-
-        # 3. Initialize Prophet
-        # interval_width=0.95 for 95% confidence intervals (better for probability calc)
+    for target in TARGETS:
+        prophet_data = df[["date", target, "temp", "humidity", "holiday"]].rename(columns={"date": "ds", target: "y"})
         model = Prophet(daily_seasonality=True, interval_width=0.95)
-        model.add_regressor('temp')
-        model.add_regressor('humidity')
-        model.add_regressor('holiday')
+        for regressor in ("temp", "humidity", "holiday"):
+            model.add_regressor(regressor)
+        model.fit(prophet_data)
 
-        # 4. Train Model
-        model.fit(df_prophet)
-
-        # 5. Evaluate (Cross Validation)
-        # Initial: 365 days, Period: 30 days, Horizon: 7 days
-        print(f"   📊 Evaluating {target} model...")
         try:
-            df_cv = cross_validation(model, initial='365 days', period='30 days', horizon='7 days', parallel="processes")
-            df_p = performance_metrics(df_cv)
-            
-            # Get average metrics
-            mae = df_p['mae'].mean()
-            rmse = df_p['rmse'].mean()
-            mape = df_p['mape'].mean()
-            
-            metrics_storage[target] = {
-                'mae': mae,
-                'rmse': rmse,
-                'mape': mape,
-                'accuracy_score': 1.0 - mape  # Simple accuracy approximation
+            cv = cross_validation(model, initial="450 days", period="30 days", horizon="7 days", parallel=None)
+            if cv.empty:
+                raise ValueError("time-series cross-validation returned no predictions")
+            baseline_by_cutoff = {}
+            for cutoff in pd.to_datetime(cv["cutoff"].unique()):
+                observed = prophet_data.loc[prophet_data["ds"] <= cutoff, "y"]
+                if observed.empty:
+                    continue
+                baseline_by_cutoff[cutoff] = float(observed.iloc[-1])
+            cv["naive_yhat"] = pd.to_datetime(cv["cutoff"]).map(baseline_by_cutoff)
+            cv = cv.dropna(subset=["naive_yhat"])
+            if cv.empty:
+                raise ValueError("no valid last-observation baseline could be calculated")
+
+            prophet_errors = _error_metrics(cv["y"], cv["yhat"])
+            baseline_errors = _error_metrics(cv["y"], cv["naive_yhat"])
+            model_mae, baseline_mae = prophet_errors["mae"], baseline_errors["mae"]
+            metrics[target] = {
+                "validation_status": "rolling_origin_development_cv",
+                "observations": int(len(prophet_data)),
+                "cv_predictions": int(len(cv)),
+                "initial_window": "450 days",
+                "horizon": "7 days",
+                "prophet": prophet_errors,
+                "last_observation_baseline": baseline_errors,
+                "mae_improvement_over_baseline": float(1 - model_mae / baseline_mae) if baseline_mae > 0 else None,
             }
-            print(f"   ✅ MAE: {mae:.2f} | MAPE: {mape:.2%}")
-            
-        except Exception as e:
-            print(f"   ⚠️ CV Failed (likely not enough data): {e}")
-            metrics_storage[target] = {'mae': 0, 'rmse': 0, 'mape': 0, 'accuracy_score': 0}
+            print(f"{target}: Prophet MAE {model_mae:.3f}; last-observation baseline MAE {baseline_mae:.3f}")
+        except Exception as exc:
+            metrics[target] = {
+                "validation_status": "unavailable",
+                "observations": int(len(prophet_data)),
+                "reason": str(exc),
+            }
+            print(f"{target}: time-series validation unavailable: {exc}")
 
-        # 6. Save Model
-        save_path = os.path.join(ARTIFACTS_DIR, f'resource_model_{target}.joblib')
-        joblib.dump(model, save_path)
-        print(f"   💾 Model saved to: {save_path}")
+        joblib.dump(model, os.path.join(ARTIFACTS_DIR, f"resource_model_{target}.joblib"))
 
-    # Save Metrics
-    metrics_path = os.path.join(ARTIFACTS_DIR, 'resource_model_metrics.json')
-    with open(metrics_path, 'w') as f:
-        json.dump(metrics_storage, f, indent=4)
-    print(f"\n📝 Metrics saved to: {metrics_path}")
+    with open(METRICS_PATH, "w", encoding="utf-8") as metrics_file:
+        json.dump(metrics, metrics_file, indent=2)
+    print(f"Saved development metrics to {METRICS_PATH}")
+
 
 if __name__ == "__main__":
     train_model()

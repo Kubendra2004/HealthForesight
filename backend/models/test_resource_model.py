@@ -97,12 +97,15 @@ if __name__ == "__main__":
     
     if all_forecasts:
         for target, forecast in all_forecasts.items():
-            # Get model score
-            score = model_metrics.get(target, {}).get('accuracy_score', 0)
-            mape = model_metrics.get(target, {}).get('mape', 0)
+            target_metrics = model_metrics.get(target, {})
+            prophet_metrics = target_metrics.get('prophet')
+            baseline_metrics = target_metrics.get('last_observation_baseline')
             
             print("\n" + "="*80)
-            print(f" {target.upper()} FORECAST | Model Accuracy: {score:.2%} (MAPE: {mape:.2%})")
+            if prophet_metrics and baseline_metrics:
+                print(f" {target.upper()} FORECAST | Rolling CV MAE: {prophet_metrics['mae']:.2f} | Baseline MAE: {baseline_metrics['mae']:.2f}")
+            else:
+                print(f" {target.upper()} FORECAST | Validation metrics unavailable")
             print("="*80)
             print(f"{'Date':<12} | {'Predicted':<10} | {'Lower CI':<10} | {'Upper CI':<10} | {'Prob. Increase':<15}")
             print("-" * 80)

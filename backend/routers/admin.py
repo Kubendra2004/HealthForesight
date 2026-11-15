@@ -7,6 +7,7 @@ import csv
 import io
 import subprocess
 import os
+import json
 
 router = APIRouter(
     prefix="/admin",
@@ -57,14 +58,32 @@ def get_all_users(db: Session = Depends(get_db), admin: User = Depends(get_curre
 
 @router.get("/models/stats")
 def get_model_stats(admin: User = Depends(get_current_admin)):
-    # Report model inventory without presenting unverified development metrics.
+    artifact_dir = os.path.join(os.path.dirname(os.path.dirname(__file__)), "models", "artifacts")
+
+    def read_metrics(filename):
+        path = os.path.join(artifact_dir, filename)
+        try:
+            with open(path, "r", encoding="utf-8") as metrics_file:
+                return json.load(metrics_file)
+        except (OSError, json.JSONDecodeError):
+            return {}
+
+    heart = read_metrics("heart_model_metrics.json")
+    diabetes = read_metrics("diabetes_model_metrics.json")
+    resources = read_metrics("resource_model_metrics.json")
+
+    def holdout_accuracy(metrics):
+        value = metrics.get("holdout_accuracy")
+        return f"{value * 100:.1f}%" if isinstance(value, (int, float)) else None
+
     return [
-        {"name": "Diabetes Risk", "target": "Class", "accuracy": None, "type": "Disease", "validation_status": "not_clinically_validated"},
-        {"name": "Heart Disease", "target": "Presence", "accuracy": None, "type": "Disease", "validation_status": "not_clinically_validated"},
-        {"name": "Hospital Beds", "target": "Occupancy", "accuracy": None, "type": "Resource", "validation_status": "not_independently_validated"},
-        {"name": "ICU Units", "target": "Count", "accuracy": None, "type": "Resource", "validation_status": "not_independently_validated"},
-        {"name": "Oxygen Usage", "target": "Cylinders", "accuracy": None, "type": "Resource", "validation_status": "not_independently_validated"},
-        {"name": "Clustering", "target": "Risk Groups", "accuracy": None, "type": "Unsupervised", "validation_status": "exploratory"},
+        {"name": "Diabetes Classification", "target": "Class", "accuracy": holdout_accuracy(diabetes), "type": "Disease", "validation_status": diabetes.get("validation_status", "metrics_unavailable"), "sample_count": diabetes.get("holdout_rows")},
+        {"name": "Heart Classification", "target": "Presence", "accuracy": holdout_accuracy(heart), "type": "Disease", "validation_status": heart.get("validation_status", "metrics_unavailable"), "sample_count": heart.get("holdout_rows")},
+        *[
+            {"name": name, "target": target, "accuracy": None, "validation_status": resources.get(target, {}).get("validation_status", "metrics_unavailable"), "mae": resources.get(target, {}).get("prophet", {}).get("mae"), "baseline_mae": resources.get(target, {}).get("last_observation_baseline", {}).get("mae"), "type": "Resource"}
+            for name, target in (("Hospital Beds", "beds"), ("ICU Units", "icu"), ("Oxygen Usage", "oxygen"), ("ER Visits", "er_visits"))
+        ],
+        {"name": "Patient Clustering", "target": "Exploratory groups", "accuracy": None, "type": "Unsupervised", "validation_status": "exploratory"},
     ]
 
 from pydantic import BaseModel
