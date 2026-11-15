@@ -1,4 +1,4 @@
-import React from "react";
+import React, { lazy, Suspense } from "react";
 import {
   BrowserRouter as Router,
   Routes,
@@ -12,11 +12,16 @@ import { useAuth } from "./context/AuthContext";
 import LandingPage from "./components/LandingPage";
 import Login from "./pages/Login";
 import Signup from "./pages/Signup";
-import PatientDashboard from "./pages/dashboards/PatientDashboard";
-import AdminDashboard from "./pages/dashboards/AdminDashboard";
-import DoctorDashboard from "./pages/dashboards/DoctorDashboard";
-import FrontdeskDashboard from "./pages/dashboards/FrontdeskDashboard";
 import "./index.css";
+
+const PatientDashboard = lazy(() => import("./pages/dashboards/PatientDashboard"));
+const AdminDashboard = lazy(() => import("./pages/dashboards/AdminDashboard"));
+const DoctorDashboard = lazy(() => import("./pages/dashboards/DoctorDashboard"));
+const FrontdeskDashboard = lazy(() => import("./pages/dashboards/FrontdeskDashboard"));
+
+function WorkspaceLoading() {
+  return <div className="workspace-loading" role="status">Loading your workspace…</div>;
+}
 
 function RoleRoute({ role, children }) {
   const { user } = useAuth();
@@ -41,12 +46,12 @@ function App() {
               <Route path="/signup" element={<Signup />} />
 
               {/* Protected Routes - Dashboards */}
-              <Route path="/dashboard/patient" element={<RoleRoute role="patient"><PatientDashboard /></RoleRoute>} />
-              <Route path="/dashboard/doctor" element={<RoleRoute role="doctor"><DoctorDashboard /></RoleRoute>} />
-              <Route path="/dashboard/admin" element={<RoleRoute role="admin"><AdminDashboard /></RoleRoute>} />
+              <Route path="/dashboard/patient" element={<Suspense fallback={<WorkspaceLoading />}><RoleRoute role="patient"><PatientDashboard /></RoleRoute></Suspense>} />
+              <Route path="/dashboard/doctor" element={<Suspense fallback={<WorkspaceLoading />}><RoleRoute role="doctor"><DoctorDashboard /></RoleRoute></Suspense>} />
+              <Route path="/dashboard/admin" element={<Suspense fallback={<WorkspaceLoading />}><RoleRoute role="admin"><AdminDashboard /></RoleRoute></Suspense>} />
               <Route
                 path="/dashboard/frontdesk"
-                element={<RoleRoute role="frontdesk"><FrontdeskDashboard /></RoleRoute>}
+                element={<Suspense fallback={<WorkspaceLoading />}><RoleRoute role="frontdesk"><FrontdeskDashboard /></RoleRoute></Suspense>}
               />
 
               {/* Fallback */}
