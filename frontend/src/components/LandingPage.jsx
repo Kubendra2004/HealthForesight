@@ -224,9 +224,9 @@ const FeaturesSection = () => {
   const features = [
     {
       icon: <Psychology />,
-      title: "AI-Powered Diagnosis",
+      title: "Exploratory Health Models",
       description:
-        "Machine learning models for heart disease and diabetes prediction with 95%+ accuracy",
+        "Exploratory heart disease and diabetes models. Outputs are not clinically validated and are not diagnostic.",
       gradient: "linear-gradient(135deg, #667eea 0%, #764ba2 100%)",
     },
     {
@@ -337,21 +337,18 @@ const AICapabilitiesSection = () => {
 
   const capabilities = [
     {
-      title: "Heart Disease Prediction",
-      description: "Advanced LightGBM model analyzing 13+ clinical parameters",
-      accuracy: "96%",
+      title: "Heart Disease Model",
+      description: "Exploratory model using clinical parameters; not a diagnostic tool",
       icon: <MonitorHeart />,
     },
     {
-      title: "Diabetes Risk Assessment",
-      description: "Multi-factor analysis for early diabetes detection",
-      accuracy: "94%",
+      title: "Diabetes Model",
+      description: "Exploratory classification output; not a diagnostic tool",
       icon: <LocalHospital />,
     },
     {
       title: "Resource Optimization",
       description: "Prophet-based forecasting for hospital resource planning",
-      accuracy: "92%",
       icon: <Speed />,
     },
   ];
@@ -368,7 +365,7 @@ const AICapabilitiesSection = () => {
             <span className="gradient-text">AI-Powered</span> Medical
             Intelligence
           </h2>
-          <p>State-of-the-art machine learning models at your fingertips</p>
+          <p>Exploratory model outputs for informational use only</p>
         </motion.div>
 
         <div className="ai-grid">
@@ -384,19 +381,7 @@ const AICapabilitiesSection = () => {
               <div className="ai-card-icon">{capability.icon}</div>
               <h3>{capability.title}</h3>
               <p>{capability.description}</p>
-              <div className="accuracy-bar">
-                <div className="accuracy-label">Accuracy</div>
-                <div className="accuracy-progress">
-                  <motion.div
-                    className="accuracy-fill"
-                    initial={{ width: 0 }}
-                    animate={inView ? { width: capability.accuracy } : {}}
-                    transition={{ delay: index * 0.2 + 0.5, duration: 1 }}
-                  >
-                    <span>{capability.accuracy}</span>
-                  </motion.div>
-                </div>
-              </div>
+              <p className="model-validation-note">No independent clinical validation reported</p>
             </motion.div>
           ))}
         </div>

@@ -140,9 +140,11 @@ The route list below is a hand-maintained overview. For the exact current reques
 | :--- | :--- | :--- |
 | POST | `/analytics/cohorts/create` | Create patient cohort |
 | GET | `/analytics/cohorts/{id}/stats` | Get cohort statistics |
-| GET | `/analytics/outcomes/treatment-success` | Treatment outcomes |
-| GET | `/analytics/resource-utilization` | Resource usage analysis |
-| GET | `/analytics/cost-per-patient` | Cost analysis |
+| GET | `/analytics/outcomes/treatment-success` | Reports unavailable until treatment outcomes/readmissions are recorded |
+| GET | `/analytics/resource-utilization` | Current bed and oxygen inventory snapshot; no historical consumption |
+| GET | `/analytics/cost-per-patient` | Recorded bill amount summary; department and per-patient totals are not tracked |
+
+Clinical prediction endpoints require complete inputs. Profile-based predictions are skipped when required values are missing; unsupported diabetes-model gender categories return HTTP 422. Model scores in this API are not clinically validated.
 
 ---
 

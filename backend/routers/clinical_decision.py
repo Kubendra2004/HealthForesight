@@ -1,4 +1,4 @@
-from fastapi import APIRouter, HTTPException, Depends
+from fastapi import APIRouter, HTTPException, Depends, Query
 from database.database import mongo_db
 from auth.auth import get_current_user
 from database.models_sql import User
@@ -6,7 +6,7 @@ from database.models_sql import UserRole
 from auth.authorization import require_patient_access, require_roles
 from pydantic import BaseModel
 from typing import List, Optional
-from datetime import datetime
+from datetime import datetime, timedelta
 
 router = APIRouter(
     prefix="/clinical",
@@ -261,15 +261,39 @@ async def log_adverse_event(
 
 @router.get("/adverse-events/trends")
 async def get_adverse_event_trends(
-    days: int = 30,
+    days: int = Query(default=30, ge=1, le=365),
     current_user: User = Depends(require_roles(UserRole.doctor, UserRole.admin))
 ):
     """Analyze adverse event patterns"""
-    # TODO: Aggregate event data and identify trends
+    now = datetime.utcnow()
+    current_start = now - timedelta(days=days)
+    previous_start = current_start - timedelta(days=days)
+
+    async def grouped_counts(start, end):
+        pipeline = [
+            {"$match": {"reported_at": {"$gte": start, "$lt": end}}},
+            {"$group": {"_id": {"type": "$event_type", "severity": "$severity"}, "count": {"$sum": 1}}},
+        ]
+        rows = await mongo_db.adverse_events.aggregate(pipeline).to_list(1000)
+        by_type, by_severity = {}, {}
+        for row in rows:
+            key = row.get("_id") or {}
+            event_type, severity, count = key.get("type", "unknown"), key.get("severity", "unknown"), row["count"]
+            by_type[event_type] = by_type.get(event_type, 0) + count
+            by_severity[severity] = by_severity.get(severity, 0) + count
+        return by_type, by_severity
+
+    current_types, current_severities = await grouped_counts(current_start, now)
+    previous_types, _ = await grouped_counts(previous_start, current_start)
+    trending_up = sorted(
+        event_type for event_type, count in current_types.items()
+        if count > previous_types.get(event_type, 0)
+    )
     return {
         "period_days": days,
-        "total_events": 0,
-        "by_type": {},
-        "by_severity": {},
-        "trending_up": []
+        "total_events": sum(current_types.values()),
+        "by_type": current_types,
+        "by_severity": current_severities,
+        "previous_period_total": sum(previous_types.values()),
+        "trending_up": trending_up,
     }

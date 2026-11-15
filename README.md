@@ -74,7 +74,7 @@ Note: MySQL is the primary relational datastore (required at startup for auth), 
 ### 1. 🧑‍🦰 Patient Dashboard
 
 - **Health Overview:** Real-time vitals tracking (BP, Heart Rate, SpO2).
-- **AI Risk Assessment:** Instant analysis of diabetes and heart disease risk based on vitals.
+- **Exploratory Risk Models:** Heart and diabetes predictions run only with complete required inputs. Results are not clinically validated and must not be used alone for diagnosis or treatment.
 - **Appointment Booking:** Seamless booking wizard with doctor selection.
 - **AI Chat & Voice:** Speak to the AI assistant to ask health questions or book appointments hands-free.
 - **Medical Records:** Secure file upload and history management.

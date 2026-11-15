@@ -423,10 +423,8 @@ const AIToolsTab = ({ token }) => {
     const [result, setResult] = useState(null);
     const [formData, setFormData] = useState({});
 
-    // Heart Defaults
-    const heartDefaults = { age: 50, sex: 1, cp: 0, trestbps: 120, chol: 200, fbs: 0, restecg: 1, thalach: 150, exang: 0, oldpeak: 2.3, slope: 0, ca: 0, thal: 2 };
-    // Diabetes Defaults
-    const diabetesDefaults = { age: 40, gender: 'Male', polyuria: 0, polydipsia: 0, sudden_weight_loss: 0, weakness: 0, polyphagia: 0, genital_thrush: 0, visual_blurring: 0, itching: 0, irritability: 0, delayed_healing: 0, partial_paresis: 0, muscle_stiffness: 0, alopecia: 0, obesity: 0 };
+    const heartDefaults = Object.fromEntries(['age', 'sex', 'cp', 'trestbps', 'chol', 'fbs', 'restecg', 'thalach', 'exang', 'oldpeak', 'slope', 'ca', 'thal'].map((key) => [key, '']));
+    const diabetesDefaults = Object.fromEntries(['age', 'gender', 'polyuria', 'polydipsia', 'sudden_weight_loss', 'weakness', 'polyphagia', 'genital_thrush', 'visual_blurring', 'itching', 'irritability', 'delayed_healing', 'partial_paresis', 'muscle_stiffness', 'alopecia', 'obesity'].map((key) => [key, '']));
 
     useEffect(() => {
         setFormData(tool === 'heart' ? heartDefaults : diabetesDefaults);
@@ -434,6 +432,11 @@ const AIToolsTab = ({ token }) => {
     }, [tool]);
 
     const handlePredict = async () => {
+        const missing = Object.entries(formData).filter(([, value]) => value === '' || value === null || value === undefined);
+        if (missing.length) {
+            setResult({ detail: `Enter or explicitly answer every required field first (${missing.map(([key]) => key).join(', ')}).` });
+            return;
+        }
         setLoading(true);
         const endpoint = `${API_BASE_URL}/ml/predict/${tool === 'heart' ? 'heart' : 'diabetes'}`;
         
@@ -450,7 +453,7 @@ const AIToolsTab = ({ token }) => {
                 body: JSON.stringify(payload)
             });
             const data = await res.json();
-            setResult(data);
+            setResult(res.ok ? data : { detail: typeof data.detail === 'string' ? data.detail : JSON.stringify(data.detail || data) });
         } catch (e) { console.error(e); } finally { setLoading(false); }
     };
 
@@ -501,6 +504,9 @@ const AIToolsTab = ({ token }) => {
                 <AnimatePresence>
                     {result && (
                         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 20 }}>
+                            {result.detail ? (
+                                <Alert severity="warning" sx={{ mt: 3 }}>{result.detail}</Alert>
+                            ) : (
                             <Paper sx={{ 
                                 ...glassCard, p: 3, mt: 3, 
                                 background: result.prediction === 1 ? 'linear-gradient(135deg, #fef2f2 0%, #fee2e2 100%)' : 'linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%)',
@@ -514,7 +520,7 @@ const AIToolsTab = ({ token }) => {
                                         <Typography variant="h6" fontWeight="bold" color={result.prediction === 1 ? 'error' : 'success.main'}>
                                             {result.label || (result.prediction === 1 ? "High Risk Detected" : "Low Risk Profile")}
                                         </Typography>
-                                        <Typography variant="caption" color="text.secondary">AI Confidence Score</Typography>
+                                        <Typography variant="caption" color="text.secondary">Unvalidated model score</Typography>
                                     </Box>
                                 </Box>
                                 <Box mt={2} position="relative" height={8} bgcolor="rgba(0,0,0,0.1)" borderRadius={4}>
@@ -529,6 +535,7 @@ const AIToolsTab = ({ token }) => {
                                     {(result.probability * 100).toFixed(1)}% Probability
                                 </Typography>
                             </Paper>
+                            )}
                         </motion.div>
                     )}
                 </AnimatePresence>

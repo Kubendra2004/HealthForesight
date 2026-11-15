@@ -1,56 +1,17 @@
-# Model Performance Report
+# Model Performance and Validation Status
 
-> **Validation status:** These are development metrics from the repository's training and evaluation scripts, not evidence of clinical validation or fitness for diagnosis or treatment. They should not be presented as validated clinical performance until evaluated on representative, independent data and reviewed for subgroup performance and calibration.
+## Clinical prediction models
 
-This document summarizes the accuracy and performance metrics for all machine learning models implemented in the Healthcare ML Platform.
+The repository contains heart disease and diabetes prediction models, but there is not enough reproducible evaluation evidence to report their scores as meaningful clinical performance. Previously listed percentages and confidence claims have been removed because they were not tied to a documented, independent validation protocol.
 
-## 1. Disease Prediction Models
+The diabetes training script now keeps all gender groups present in its source dataset and prints a stratified holdout report, per-gender holdout reports, and five-fold cross-validated balanced accuracy. These are development checks only. The checked-in model artifact has not been retrained by this change; its saved gender encoder determines which genders it can accept. The API rejects inputs outside that encoder's supported categories with an explanatory error.
 
-| Model | Target | Algorithm | Accuracy | Confidence Score |
-| :--- | :--- | :--- | :--- | :--- |
-| **Diabetes Risk** | `class` (Positive/Negative) | LightGBM | **96.97%** | Yes |
-| **Heart Disease** | `target` (Presence/Absence) | RandomForest | **91.80%** | Yes |
+The checks in the training script do not establish clinical validity. Before clinical use, each model needs a versioned dataset and artifact, an independent representative test set, subgroup sample counts and metrics, calibration and uncertainty assessment, and review by qualified clinical and statistical reviewers. Predictions are informational and must not be used alone to diagnose or treat a patient.
 
-> [!NOTE]
-> The Diabetes model is specifically trained on male patients to ensure higher data quality and relevance. The Heart Disease model uses a tuned Random Forest classifier for optimal performance.
+## Resource forecasts and clustering
 
----
+The repository includes resource forecasting and patient clustering code. No validated performance figures are reported here: the available figures were not accompanied by enough versioned data, evaluation outputs, or reproducible protocols to verify them. Forecasts and cluster labels are operational or exploratory outputs, not clinical evidence.
 
-## 2. Resource Forecast Models (Seasonal)
+## Analytics availability
 
-These models forecast hospital resource usage for the next 7 days. Performance is evaluated using **Cross-Validation** (30-day period, 7-day horizon).
-
-| Resource | Metric | Accuracy Score* | MAPE (Error Rate) | MAE (Avg Error) |
-| :--- | :--- | :--- | :--- | :--- |
-| **Beds** | Occupancy Count | **94.92%** | 5.08% | 4.30 |
-| **ICU** | Unit Count | **96.50%** | 3.50% | 2.50 |
-| **Oxygen** | Cylinders/Units | **95.80%** | 4.20% | 12.00 |
-| **ER Visits** | Visit Count | **96.20%** | 3.80% | 5.00 |
-| **Occupancy Rate** | Percentage (0-1) | **97.74%** | 2.26% | 0.02 |
-
-> [!TIP]
-> **Accuracy Score** here is calculated as `1 - MAPE`.
-> *   **MAPE** (Mean Absolute Percentage Error): Lower is better.
-> *   **MAE** (Mean Absolute Error): Average difference between predicted and actual values.
-
-### Probabilistic Forecasting
-All resource models provide a **Probability of Increase** score for each forecasted day, indicating the likelihood that resource demand will rise above current levels.
-
----
-
-## 3. Clustering Model (Unsupervised)
-
-### Patient Risk Clustering
-- **Model**: K-Means Clustering (k=4) with PCA (2 components) & RobustScaler.
-- **Silhouette Score**: **0.4029** (Fair/Good structure)
-- **Davies-Bouldin Index**: **0.8144** (Good separation)
-- **Calinski-Harabasz Index**: **4284.86** (High density)
-
-**Risk Levels Identified:**
-1. **Very Low Risk**
-2. **Low Risk**
-3. **Medium Risk**
-4. **High Risk**
-
-> [!NOTE]
-> The clustering model uses unsupervised learning to group patients based on 15 health metrics. Risk labels are assigned based on the prevalence of heart disease within each cluster.
+Treatment success and readmission outcomes are not currently collected, so the treatment-success endpoint reports that the metric is unavailable. Resource utilization and cost summaries use recorded bed snapshots, oxygen inventory, and bill amounts; historical consumption, department allocation, and item category breakdowns are not available in the current data model.

@@ -141,19 +141,22 @@ async def get_treatment_success_rates(
     Get treatment success rates by condition.
     Success defined as: readmission within 30 days = failure
     """
-    # TODO: Calculate from actual patient outcomes
+    # The application has no treatment outcome/readmission records yet. Do not
+    # return a success rate that looks measured when no outcomes are collected.
     return {
         "condition": condition or "all",
-        "success_rate": 0.85,
+        "available": False,
+        "reason": "Treatment outcomes and 30-day readmissions are not recorded by this application yet.",
+        "success_rate": None,
         "total_treatments": 0,
-        "avg_recovery_days": 0
+        "avg_recovery_days": None,
     }
 
 # --- Cost Optimization ---
 
 @router.get("/resource-utilization")
 async def get_resource_utilization(
-    days: int = 30,
+    days: int = Query(default=30, ge=1, le=365),
     current_user: User = Depends(get_current_user)
 ):
     """
@@ -162,16 +165,18 @@ async def get_resource_utilization(
     if current_user.role != UserRole.admin:
         raise HTTPException(status_code=403, detail="Admin access required")
     
-    # TODO: Implement actual utilization analysis
+    beds_total = await mongo_db.beds.count_documents({})
+    beds_occupied = await mongo_db.beds.count_documents({"status": "Occupied"})
+    oxygen_item = await mongo_db.inventory.find_one({"name": {"$regex": "oxygen", "$options": "i"}})
+    oxygen_quantity = oxygen_item.get("quantity") if oxygen_item else None
     return {
         "period_days": days,
-        "bed_utilization": 0.78,
-        "oxygen_waste_estimate": 0,
-        "icu_idle_hours": 0,
-        "recommendations": [
-            "Consider reducing ICU capacity by 2 beds during off-peak hours",
-            "Oxygen usage is optimal"
-        ]
+        "available": beds_total > 0 or oxygen_item is not None,
+        "bed_capacity": beds_total,
+        "occupied_beds": beds_occupied,
+        "bed_utilization": round(beds_occupied / beds_total, 4) if beds_total else None,
+        "oxygen_inventory_quantity": oxygen_quantity,
+        "note": "Bed utilization is a current snapshot; historical utilization and oxygen consumption are not recorded.",
     }
 
 @router.get("/cost-per-patient")
@@ -179,19 +184,24 @@ async def get_cost_per_patient(
     department: Optional[str] = None,
     current_user: User = Depends(get_current_user)
 ):
-    """Average cost per patient by department"""
+    """Summarize recorded bill amounts; the data does not support per-patient totals."""
     if current_user.role != UserRole.admin:
         raise HTTPException(status_code=403, detail="Admin access required")
     
-    # TODO: Calculate from billing data
+    if department:
+        raise HTTPException(status_code=422, detail="Bills do not currently record a department, so department filtering is unavailable.")
+
+    bills = await mongo_db.bills.find({}, {"amount": 1}).to_list(10000)
+    amounts = [float(bill["amount"]) for bill in bills if isinstance(bill.get("amount"), (int, float))]
+    amounts.sort()
+    count = len(amounts)
+    median = (amounts[(count - 1) // 2] + amounts[count // 2]) / 2 if count else None
     return {
-        "department": department or "all",
-        "avg_cost": 0,
-        "median_cost": 0,
-        "cost_breakdown": {
-            "consultations": 0,
-            "procedures": 0,
-            "medications": 0,
-            "room": 0
-        }
+        "department": "all",
+        "available": count > 0,
+        "bill_count": count,
+        "avg_bill_amount": round(sum(amounts) / count, 2) if count else None,
+        "median_bill_amount": round(median, 2) if median is not None else None,
+        "cost_breakdown": None,
+        "note": "Based on recorded bill amounts; department and item categories are not consistently recorded.",
     }

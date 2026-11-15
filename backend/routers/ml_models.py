@@ -260,7 +260,7 @@ async def get_heart_prediction(patient_id: str, current_user: User = Depends(get
     """Get latest heart disease prediction for a patient"""
     try:
         prediction = await mongo_db.heart_predictions.find_one(
-            {"patient_id": patient_id},
+            {"patient_id": patient_id, "superseded": {"$ne": True}},
             sort=[("created_at", -1)]
         )
         
@@ -331,6 +331,17 @@ async def predict_diabetes(data: DiabetesData, current_user: User = Depends(get_
     diabetes_models = get_model('diabetes')
     if not diabetes_models:
         raise HTTPException(status_code=500, detail="Diabetes model not available")
+
+    gender_encoder = diabetes_models.get('encoders', {}).get('Gender') or diabetes_models.get('encoders', {}).get('gender')
+    supported_genders = list(gender_encoder.classes_) if gender_encoder is not None else []
+    if data.gender not in supported_genders:
+        raise HTTPException(
+            status_code=422,
+            detail={
+                "message": "The loaded diabetes model was not trained for this gender. Retrain and validate the model on representative data before using it for this patient.",
+                "supported_genders": supported_genders,
+            },
+        )
     
     try:
         input_dict = data.dict()
@@ -368,7 +379,7 @@ async def get_diabetes_prediction(patient_id: str, current_user: User = Depends(
     """Get latest diabetes prediction for a patient"""
     try:
         prediction = await mongo_db.diabetes_predictions.find_one(
-            {"patient_id": patient_id},
+            {"patient_id": patient_id, "superseded": {"$ne": True}},
             sort=[("created_at", -1)]
         )
         

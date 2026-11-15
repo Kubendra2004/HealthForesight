@@ -690,8 +690,8 @@ const ReportsSection = () => {
                 These development metrics have not been clinically validated and should not guide diagnosis or treatment.
             </Alert>
             
-            <Card sx={{ ...glassStyle, p: 3, mb: 4, height: 400 }}>
-                <Typography variant="h6" fontWeight="bold" gutterBottom>Accuracy Comparison</Typography>
+            {chartData.some((entry) => entry.accuracy > 0) ? <Card sx={{ ...glassStyle, p: 3, mb: 4, height: 400 }}>
+                <Typography variant="h6" fontWeight="bold" gutterBottom>Recorded Development Metrics</Typography>
                 <ResponsiveContainer width="100%" height="100%">
                     <BarChart data={chartData} margin={{ top: 20, right: 30, left: 20, bottom: 5 }}>
                         <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />
@@ -708,7 +708,7 @@ const ReportsSection = () => {
                         </Bar>
                     </BarChart>
                 </ResponsiveContainer>
-            </Card>
+            </Card> : <Alert severity="info" sx={{ mb: 4 }}>No reproducible validation metrics are currently recorded for these models.</Alert>}
             
             <Grid container spacing={3}>
                 {(models || []).map((model, i) => (
@@ -716,7 +716,7 @@ const ReportsSection = () => {
                         <Card sx={{ ...glassStyle, textAlign: 'center', p: 2 }}>
                             <Typography variant="subtitle1" color="text.secondary">{model.type}</Typography>
                             <Typography variant="h6" fontWeight="bold" sx={{ mt: 0.5, mb: 0.5, height: 40, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>{model.name}</Typography>
-                            <Typography variant="h4" fontWeight="900" color="primary">{model.accuracy}</Typography>
+                            <Typography variant="body2" fontWeight="700" color="text.secondary">{model.validation_status?.replaceAll('_', ' ') || 'No verified metric'}</Typography>
                         </Card>
                     </Grid>
                 ))}

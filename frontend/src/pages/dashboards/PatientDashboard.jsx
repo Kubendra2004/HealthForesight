@@ -161,19 +161,7 @@ export default function PatientDashboard() {
   const [heartPrediction, setHeartPrediction] = useState(null);
   const [diabetesPrediction, setDiabetesPrediction] = useState(null);
 
-  // Risk color themes - dynamic based on predictions
-  // Risk color themes - dynamic based on predictions
-  // Risk Level Helper
-  const getRiskLevel = (prob) => {
-      // User requested: Low (<30%), Medium (30-70%), High (70-80%), Very High (>80%)
-      if (prob < 0.3) return { label: "Low", color: "#059669", bg: "#dcfce7" };
-      if (prob < 0.7) return { label: "Medium", color: "#d97706", bg: "#fef3c7" }; 
-      if (prob < 0.8) return { label: "High", color: "#dc2626", bg: "#fee2e2" };
-      return { label: "Very High", color: "#7f1d1d", bg: "#fecaca" };
-  };
-
-  const diabetesLevel = getRiskLevel(diabetesPrediction?.probability || 0);
-  const heartLevel = getRiskLevel(heartPrediction?.probability || 0);
+  const modelOutputStyle = { label: "Exploratory", color: "#475569", bg: "#f1f5f9" };
 
   // Health metrics and score
   const [healthMetrics, setHealthMetrics] = useState({ age: null, bmi: null });
@@ -215,21 +203,8 @@ export default function PatientDashboard() {
         if (conditions.includes("Stroke")) score -= 15;
     }
 
-    // 5. ML Predictions
-    // Medium Risk (30-70%): -10 points
-    if (heartPrediction?.probability >= 0.3 && heartPrediction?.probability < 0.7) score -= 10;
-    if (diabetesPrediction?.probability >= 0.3 && diabetesPrediction?.probability < 0.7) score -= 10;
-
-    // High Risk (70-80%): -20 points
-    if (heartPrediction?.probability >= 0.7 && heartPrediction?.probability < 0.8) score -= 20;
-    if (diabetesPrediction?.probability >= 0.7 && diabetesPrediction?.probability < 0.8) score -= 20;
-
-    // Very High Risk (>80%): -30 points
-    if (heartPrediction?.probability >= 0.8) score -= 30;
-    if (diabetesPrediction?.probability >= 0.8) score -= 30;
-
     setHealthScore(Math.max(0, Math.round(score)));
-  }, [profileData, heartPrediction, diabetesPrediction]);
+  }, [profileData]);
 
   // Files and upload modal state
   const [files, setFiles] = useState([]);
@@ -544,31 +519,25 @@ export default function PatientDashboard() {
                 }}
               >
                 <RiskCard
-                  title="Diabetes Risk"
+                  title="Diabetes Model Output"
                   icon="🩺"
                   value={
-                    diabetesPrediction?.probability !== undefined && diabetesPrediction?.probability !== null
-                      ? (diabetesPrediction.probability < 0.01 
-                          ? "< 1%" 
-                          : `${(diabetesPrediction.probability * 100).toFixed(0)}%`)
-                      : "N/A"
+                    diabetesPrediction ? (diabetesPrediction.prediction === 1 ? "Positive classification" : "Negative classification") : "No result"
                   }
-                  level={diabetesLevel.label}
-                  colorProp={diabetesLevel}
-                  sub="Based on recent tests"
+                  level={modelOutputStyle.label}
+                  colorProp={modelOutputStyle}
+                  sub="Exploratory only; not a clinical risk estimate"
                   delay={0.2}
                 />
                 <RiskCard
-                  title="Heart Disease Risk"
+                  title="Heart Disease Model Output"
                   icon="❤️"
                   value={
-                    heartPrediction
-                      ? `${(heartPrediction.probability * 100).toFixed(0)}%`
-                      : "N/A"
+                    heartPrediction ? (heartPrediction.prediction === 1 ? "Positive classification" : "Negative classification") : "No result"
                   }
-                  level={heartLevel.label}
-                  colorProp={heartLevel}
-                  sub="Based on vitals"
+                  level={modelOutputStyle.label}
+                  colorProp={modelOutputStyle}
+                  sub="Exploratory only; not a clinical risk estimate"
                   delay={0.3}
                 />
 

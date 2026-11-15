@@ -1,7 +1,8 @@
 import pandas as pd
 import lightgbm as lgb
 from sklearn.model_selection import train_test_split
-from sklearn.metrics import accuracy_score, classification_report
+from sklearn.metrics import accuracy_score, balanced_accuracy_score, classification_report, roc_auc_score
+from sklearn.model_selection import StratifiedKFold, cross_val_score
 from sklearn.preprocessing import LabelEncoder
 import joblib
 import os
@@ -32,9 +33,10 @@ def train_model():
 
     print("✅ Dataset Loaded Successfully")
     
-    # Filter for Male
-    df = df[df['Gender'] == 'Male'].copy()
-    print(f"Filtered for Male. Records: {len(df)}")
+    # Keep all genders represented in the source data. Evaluation below reports
+    # subgroup metrics so the aggregate score cannot hide a weak subgroup.
+    df = df.copy()
+    print("Gender counts:", df['Gender'].value_counts(dropna=False).to_dict())
 
     # ----------------------------
     # 2. Final Features
@@ -101,9 +103,21 @@ def train_model():
     # ----------------------------
     preds = model.predict(X_test)
     acc = accuracy_score(y_test, preds)
+    balanced_acc = balanced_accuracy_score(y_test, preds)
+    probabilities = model.predict_proba(X_test)[:, 1]
+    auc = roc_auc_score(y_test, probabilities)
 
-    print(f"\n📊 Accuracy: {acc * 100:.2f}%\n")
+    print(f"\nHoldout accuracy: {acc:.3f}; balanced accuracy: {balanced_acc:.3f}; ROC AUC: {auc:.3f}")
     print(classification_report(y_test, preds))
+    test_genders = df.loc[X_test.index, 'Gender']
+    for gender in sorted(test_genders.dropna().unique()):
+        subgroup = test_genders == gender
+        print(f"\nHoldout subgroup: {gender} (n={int(subgroup.sum())})")
+        print(classification_report(y_test[subgroup], preds[subgroup], zero_division=0))
+
+    cv = StratifiedKFold(n_splits=5, shuffle=True, random_state=42)
+    cv_scores = cross_val_score(model, X, y, cv=cv, scoring='balanced_accuracy')
+    print(f"5-fold CV balanced accuracy: {cv_scores.mean():.3f} ± {cv_scores.std():.3f}")
 
     # ----------------------------
     # 7. Save Model & Encoders

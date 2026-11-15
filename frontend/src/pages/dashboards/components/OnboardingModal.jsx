@@ -50,18 +50,35 @@ export default function OnboardingModal({ open, onClose, user, onComplete }) {
     // Heart Specific
     chest_pain_type: "", // 0-3
     max_heart_rate: "",
-    exercise_angina: "0",
+    exercise_angina: "",
     st_depression: "", // oldpeak
     st_slope: "",
     major_vessels: "", // 0-3
     thalassemia: "", // 0-3
-    resting_ecg: "0",
+    resting_ecg: "",
 
     // Diabetes Specific
     insulin: "",
     skin_thickness: "",
     pregnancies: "0",
     diabetes_pedigree: "",
+    fasting_glucose_over_120: "",
+
+    // Clinical symptoms start unanswered. "No" must be selected explicitly.
+    polyuria: "",
+    polydipsia: "",
+    sudden_weight_loss: "",
+    weakness: "",
+    polyphagia: "",
+    genital_thrush: "",
+    visual_blurring: "",
+    itching: "",
+    irritability: "",
+    delayed_healing: "",
+    partial_paresis: "",
+    muscle_stiffness: "",
+    alopecia: "",
+    obesity: "",
 
     // Lifestyle
     smoking: "No",
@@ -130,15 +147,6 @@ export default function OnboardingModal({ open, onClose, user, onComplete }) {
         Authorization: `Bearer ${token}`,
       };
 
-      // Calculate BMI & Obesity for Payload
-      const heightM = parseFloat(formData.height) / 100;
-      const weightKg = parseFloat(formData.weight);
-      let calculatedObesity = 0;
-      if (heightM > 0 && weightKg > 0) {
-          const bmi = weightKg / (heightM * heightM);
-          if (bmi > 30) calculatedObesity = 1;
-      }
-
       // Safe Conversion Helpers
       const safeInt = (val) => (val === "" || val === null || isNaN(parseInt(val))) ? undefined : parseInt(val);
       const safeFloat = (val) => (val === "" || val === null || isNaN(parseFloat(val))) ? undefined : parseFloat(val);
@@ -161,6 +169,7 @@ export default function OnboardingModal({ open, onClose, user, onComplete }) {
       
       // Lab Results / Clinical Data (Heart)
       profilePayload.glucose = safeFloat(formData.glucose);
+      profilePayload.fasting_glucose_over_120 = safeInt(formData.fasting_glucose_over_120);
       profilePayload.cholesterol = safeInt(formData.cholesterol);
       profilePayload.chest_pain_type = safeInt(formData.chest_pain_type);
       profilePayload.resting_ecg = safeInt(formData.resting_ecg);
@@ -191,7 +200,7 @@ export default function OnboardingModal({ open, onClose, user, onComplete }) {
       profilePayload.partial_paresis = safeInt(formData.partial_paresis);
       profilePayload.muscle_stiffness = safeInt(formData.muscle_stiffness);
       profilePayload.alopecia = safeInt(formData.alopecia);
-      profilePayload.obesity = calculatedObesity; // Explicitly calculated
+      profilePayload.obesity = safeInt(formData.obesity);
 
       // Lifestyle & History
       profilePayload.smoking = formData.smoking; // "Yes"/"No" string is valid per backend
@@ -269,11 +278,7 @@ export default function OnboardingModal({ open, onClose, user, onComplete }) {
             const newForm = { ...formData };
             if(vitals.age) newForm.age = vitals.age;
             if(vitals.gender) newForm.gender = vitals.gender;
-            if(vitals.glucose) {
-                newForm.glucose = vitals.glucose;
-                // Auto-set Polydipsia (Excessive Thirst) if Glucose is high (>140)
-                if(vitals.glucose > 140) newForm.polydipsia = 1;
-            }
+            if(vitals.glucose) newForm.glucose = vitals.glucose;
             if(vitals.cholesterol) newForm.cholesterol = vitals.cholesterol;
             if(vitals.bp) {
                 const parts = vitals.bp.split("/");
@@ -281,13 +286,6 @@ export default function OnboardingModal({ open, onClose, user, onComplete }) {
                     newForm.systolic_bp = parts[0];
                     newForm.diastolic_bp = parts[1];
                 }
-            }
-            if(vitals.bmi) {
-                 // Auto-set Obesity if BMI > 30
-                 if(vitals.bmi > 30) newForm.obesity = 1;
-            } else if (newForm.weight && newForm.height) {
-                 const bmi = newForm.weight / (newForm.height/100)**2;
-                 if(bmi > 30) newForm.obesity = 1;
             }
             
             setFormData(newForm);
@@ -369,6 +367,11 @@ export default function OnboardingModal({ open, onClose, user, onComplete }) {
             />
             
             <TextField label="Cholesterol Level" name="cholesterol" type="number" value={formData.cholesterol} onChange={handleChange} fullWidth />
+            <TextField select label="Fasting glucose above 120?" name="fasting_glucose_over_120" value={formData.fasting_glucose_over_120} onChange={handleChange} fullWidth helperText="Answer only if the glucose test was fasting.">
+              <MenuItem value="">Unknown</MenuItem>
+              <MenuItem value="0">No</MenuItem>
+              <MenuItem value="1">Yes</MenuItem>
+            </TextField>
           </Box>
         );
       case 2: // Heart (Simplified)
@@ -387,6 +390,7 @@ export default function OnboardingModal({ open, onClose, user, onComplete }) {
                 </TextField>
                 <TextField label="Max Heart Rate (During Exercise)" name="max_heart_rate" type="number" value={formData.max_heart_rate} onChange={handleChange} fullWidth placeholder="e.g. 150" />
                 <TextField select label="Pain when exercising?" name="exercise_angina" value={formData.exercise_angina} onChange={handleChange} fullWidth>
+                    <MenuItem value="">Unknown</MenuItem>
                     <MenuItem value="0">No</MenuItem>
                     <MenuItem value="1">Yes</MenuItem>
                 </TextField>
@@ -411,7 +415,8 @@ export default function OnboardingModal({ open, onClose, user, onComplete }) {
                             <MenuItem value="1">Normal</MenuItem>
                             <MenuItem value="3">Reversable Defect</MenuItem>
                         </TextField>
-                         <TextField select label="Resting ECG" name="resting_ecg" value={formData.resting_ecg} onChange={handleChange} fullWidth>
+                        <TextField select label="Resting ECG" name="resting_ecg" value={formData.resting_ecg} onChange={handleChange} fullWidth>
+                            <MenuItem value="">Unknown</MenuItem>
                             <MenuItem value="0">Normal</MenuItem>
                             <MenuItem value="1">ST-T Wave Abnormality</MenuItem>
                             <MenuItem value="2">Left Ventricular Hypertrophy</MenuItem>
@@ -427,19 +432,23 @@ export default function OnboardingModal({ open, onClose, user, onComplete }) {
               <Typography variant="h6" sx={{ fontSize: '1rem' }}>Symptoms & Lifestyle</Typography>
              
               <Box sx={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 2 }}>
-                <TextField select label="Frequent Urination?" name="polyuria" value={formData.polyuria || 0} onChange={handleChange} fullWidth>
+                <TextField select label="Frequent Urination?" name="polyuria" value={formData.polyuria} onChange={handleChange} fullWidth>
+                    <MenuItem value="">Unknown</MenuItem>
                     <MenuItem value={0}>No</MenuItem>
                     <MenuItem value={1}>Yes</MenuItem>
                 </TextField>
-                <TextField select label="Excessive Thirst?" name="polydipsia" value={formData.polydipsia || 0} onChange={handleChange} fullWidth>
+                <TextField select label="Excessive Thirst?" name="polydipsia" value={formData.polydipsia} onChange={handleChange} fullWidth>
+                    <MenuItem value="">Unknown</MenuItem>
                     <MenuItem value={0}>No</MenuItem>
                     <MenuItem value={1}>Yes</MenuItem>
                 </TextField>
-                 <TextField select label="Sudden Weight Loss?" name="sudden_weight_loss" value={formData.sudden_weight_loss || 0} onChange={handleChange} fullWidth>
+                 <TextField select label="Sudden Weight Loss?" name="sudden_weight_loss" value={formData.sudden_weight_loss} onChange={handleChange} fullWidth>
+                    <MenuItem value="">Unknown</MenuItem>
                     <MenuItem value={0}>No</MenuItem>
                     <MenuItem value={1}>Yes</MenuItem>
                 </TextField>
-                 <TextField select label="Do you feel weak?" name="weakness" value={formData.weakness || 0} onChange={handleChange} fullWidth>
+                 <TextField select label="Do you feel weak?" name="weakness" value={formData.weakness} onChange={handleChange} fullWidth>
+                    <MenuItem value="">Unknown</MenuItem>
                     <MenuItem value={0}>No</MenuItem>
                     <MenuItem value={1}>Yes</MenuItem>
                 </TextField>
@@ -451,26 +460,43 @@ export default function OnboardingModal({ open, onClose, user, onComplete }) {
                 </AccordionSummary>
                 <AccordionDetails>
                    <Box sx={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 2 }}>
-                        <TextField select label="Excessive Hunger?" name="polyphagia" value={formData.polyphagia || 0} onChange={handleChange} fullWidth>
+                        <TextField select label="Excessive Hunger?" name="polyphagia" value={formData.polyphagia} onChange={handleChange} fullWidth>
+                            <MenuItem value="">Unknown</MenuItem>
                             <MenuItem value={0}>No</MenuItem>
                             <MenuItem value={1}>Yes</MenuItem>
                         </TextField>
-                        <TextField select label="Blurred Vision?" name="visual_blurring" value={formData.visual_blurring || 0} onChange={handleChange} fullWidth>
+                        <TextField select label="Blurred Vision?" name="visual_blurring" value={formData.visual_blurring} onChange={handleChange} fullWidth>
+                            <MenuItem value="">Unknown</MenuItem>
                             <MenuItem value={0}>No</MenuItem>
                             <MenuItem value={1}>Yes</MenuItem>
                         </TextField>
-                         <TextField select label="Itching?" name="itching" value={formData.itching || 0} onChange={handleChange} fullWidth>
+                         <TextField select label="Itching?" name="itching" value={formData.itching} onChange={handleChange} fullWidth>
+                            <MenuItem value="">Unknown</MenuItem>
                             <MenuItem value={0}>No</MenuItem>
                             <MenuItem value={1}>Yes</MenuItem>
                         </TextField>
-                        <TextField select label="Irritability?" name="irritability" value={formData.irritability || 0} onChange={handleChange} fullWidth>
+                        <TextField select label="Irritability?" name="irritability" value={formData.irritability} onChange={handleChange} fullWidth>
+                            <MenuItem value="">Unknown</MenuItem>
                             <MenuItem value={0}>No</MenuItem>
                             <MenuItem value={1}>Yes</MenuItem>
                         </TextField>
-                        <TextField select label="Delayed Healing?" name="delayed_healing" value={formData.delayed_healing || 0} onChange={handleChange} fullWidth>
+                        <TextField select label="Delayed Healing?" name="delayed_healing" value={formData.delayed_healing} onChange={handleChange} fullWidth>
+                            <MenuItem value="">Unknown</MenuItem>
                             <MenuItem value={0}>No</MenuItem>
                             <MenuItem value={1}>Yes</MenuItem>
                         </TextField>
+                   </Box>
+                   <Box sx={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 2, mt: 2 }}>
+                     {[
+                       ["genital_thrush", "Genital thrush?"], ["partial_paresis", "Partial weakness or paralysis?"],
+                       ["muscle_stiffness", "Muscle stiffness?"], ["alopecia", "Hair loss?"], ["obesity", "Have you been diagnosed with obesity?"]
+                     ].map(([name, label]) => (
+                       <TextField key={name} select label={label} name={name} value={formData[name]} onChange={handleChange} fullWidth>
+                         <MenuItem value="">Unknown</MenuItem>
+                         <MenuItem value="0">No</MenuItem>
+                         <MenuItem value="1">Yes</MenuItem>
+                       </TextField>
+                     ))}
                    </Box>
                 </AccordionDetails>
                 </Accordion>

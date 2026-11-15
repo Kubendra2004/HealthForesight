@@ -37,6 +37,7 @@ class PatientProfile(BaseModel):
     
     # Lab Results / Clinical Data (Heart)
     glucose: Optional[float] = None
+    fasting_glucose_over_120: Optional[int] = None
     cholesterol: Optional[int] = None
     chest_pain_type: Optional[int] = None  # cp: 0-3
     resting_ecg: Optional[int] = None      # restecg: 0-2
@@ -53,21 +54,21 @@ class PatientProfile(BaseModel):
     skin_thickness: Optional[int] = None
     diabetes_pedigree: Optional[float] = None
     
-    # Diabetes Symptoms (Optional - Default to 0/No if missing)
-    polyuria: Optional[int] = 0
-    polydipsia: Optional[int] = 0
-    sudden_weight_loss: Optional[int] = 0
-    weakness: Optional[int] = 0
-    polyphagia: Optional[int] = 0
-    genital_thrush: Optional[int] = 0
-    visual_blurring: Optional[int] = 0
-    itching: Optional[int] = 0
-    irritability: Optional[int] = 0
-    delayed_healing: Optional[int] = 0
-    partial_paresis: Optional[int] = 0
-    muscle_stiffness: Optional[int] = 0
-    alopecia: Optional[int] = 0
-    obesity: Optional[int] = 0 # Can be calc from BMI but good to have explicit
+    # Keep missing symptom answers distinct from an explicit "No".
+    polyuria: Optional[int] = None
+    polydipsia: Optional[int] = None
+    sudden_weight_loss: Optional[int] = None
+    weakness: Optional[int] = None
+    polyphagia: Optional[int] = None
+    genital_thrush: Optional[int] = None
+    visual_blurring: Optional[int] = None
+    itching: Optional[int] = None
+    irritability: Optional[int] = None
+    delayed_healing: Optional[int] = None
+    partial_paresis: Optional[int] = None
+    muscle_stiffness: Optional[int] = None
+    alopecia: Optional[int] = None
+    obesity: Optional[int] = None
 
     # History
     conditions: Optional[str] = None
@@ -97,71 +98,88 @@ async def save_patient_profile(
         {"$set": profile_data},
         upsert=True
     )
+    # A profile edit invalidates the previous automatic predictions until a
+    # complete replacement can be computed, so dashboards cannot show stale risk.
+    await mongo_db.heart_predictions.update_many(
+        {"patient_id": current_user.username, "superseded": {"$ne": True}},
+        {"$set": {"superseded": True}},
+    )
+    await mongo_db.diabetes_predictions.update_many(
+        {"patient_id": current_user.username, "superseded": {"$ne": True}},
+        {"$set": {"superseded": True}},
+    )
 
-    # --- AUTO-TRIGGER PREDICTIONS ---
-    print(f"🔄 Auto-triggering predictions for {current_user.username}...")
-    try:
-        # 1. Heart Disease Prediction
-        # Map profile fields to HeartDiseaseData
-        # Defaults used if optional fields are missing (0 typically means 'No' or 'Low' in this dataset context)
-        heart_data = HeartDiseaseData(
-            age=profile.age,
-            sex=1 if profile.gender == "Male" else 0,
-            cp=profile.chest_pain_type or 0,
-            trestbps=profile.systolic_bp or 120,
-            chol=profile.cholesterol or 200,
-            fbs=1 if (profile.glucose or 0) > 120 else 0,
-            restecg=profile.resting_ecg or 0,
-            thalach=profile.max_heart_rate or 150,
-            exang=profile.exercise_angina or 0,
-            oldpeak=profile.st_depression or 0.0,
-            slope=profile.st_slope or 1,
-            ca=profile.major_vessels or 0,
-            thal=profile.thalassemia or 2
-        )
-        await predict_heart(heart_data, current_user)
-        print("✅ Heart prediction updated.")
+    # Run predictions only when every model input is explicitly present. Missing
+    # values must not be converted into normal findings or inferred symptoms.
+    heart_fields = {
+        "systolic_bp": profile.systolic_bp, "cholesterol": profile.cholesterol,
+        "fasting_glucose_over_120": profile.fasting_glucose_over_120,
+        "chest_pain_type": profile.chest_pain_type,
+        "resting_ecg": profile.resting_ecg, "max_heart_rate": profile.max_heart_rate,
+        "exercise_angina": profile.exercise_angina, "st_depression": profile.st_depression,
+        "st_slope": profile.st_slope, "major_vessels": profile.major_vessels,
+        "thalassemia": profile.thalassemia,
+    }
+    diabetes_fields = {
+        "polyuria": profile.polyuria, "polydipsia": profile.polydipsia,
+        "sudden_weight_loss": profile.sudden_weight_loss, "weakness": profile.weakness,
+        "polyphagia": profile.polyphagia, "genital_thrush": profile.genital_thrush,
+        "visual_blurring": profile.visual_blurring, "itching": profile.itching,
+        "irritability": profile.irritability, "delayed_healing": profile.delayed_healing,
+        "partial_paresis": profile.partial_paresis, "muscle_stiffness": profile.muscle_stiffness,
+        "alopecia": profile.alopecia, "obesity": profile.obesity,
+    }
+    prediction_status = {"heart": "skipped_missing_inputs", "diabetes": "skipped_missing_inputs"}
 
-        # 2. Diabetes Prediction
-        # Need to handle missing symptoms carefully. 
-        # If not present in profile, default to 0 to avoid error, 
-        # but user should ideally provide them in the form.
-        
-        # Calculate Obesity from BMI if available
-        bmi = 0
-        if profile.height and profile.weight:
-            bmi = profile.weight / ((profile.height/100) ** 2)
-            
-        diabetes_data = DiabetesData(
-            age=profile.age,
-            gender=profile.gender,
-            polyuria=profile.polyuria or 0,
-            # Map Glucose > 140 to Polydipsia (Excessive Thirst) if not explicitly set, 
-            # OR if explicitly set to 0 but Glucose is very high, might be worth flagging?
-            # For now, we trust explicit input, but if explicit is None/0 and Glucose > 140, we assume Yes.
-            polydipsia=profile.polydipsia or (1 if (profile.glucose or 0) > 140 else 0),
-            sudden_weight_loss=profile.sudden_weight_loss or 0,
-            weakness=profile.weakness or 0,
-            polyphagia=profile.polyphagia or 0,
-            genital_thrush=profile.genital_thrush or 0,
-            visual_blurring=profile.visual_blurring or 0,
-            itching=profile.itching or 0,
-            irritability=profile.irritability or 0,
-            delayed_healing=profile.delayed_healing or 0,
-            partial_paresis=profile.partial_paresis or 0,
-            muscle_stiffness=profile.muscle_stiffness or 0,
-            alopecia=profile.alopecia or 0,
-            obesity=profile.obesity or (1 if bmi > 30 else 0)
-        )
-        await predict_diabetes(diabetes_data, current_user)
-        print("✅ Diabetes prediction updated.")
-        
-    except Exception as e:
-        print(f"⚠️ Auto-prediction failed: {e}")
-        # We don't fail the profile save just because prediction trigger failed
-        # But good to log it.
+    if all(value is not None for value in heart_fields.values()) and profile.gender in {"Male", "Female"}:
+        try:
+            heart_data = HeartDiseaseData(
+                age=profile.age,
+                sex=1 if profile.gender == "Male" else 0,
+                cp=profile.chest_pain_type,
+                trestbps=profile.systolic_bp,
+                chol=profile.cholesterol,
+                fbs=profile.fasting_glucose_over_120,
+                restecg=profile.resting_ecg,
+                thalach=profile.max_heart_rate,
+                exang=profile.exercise_angina,
+                oldpeak=profile.st_depression,
+                slope=profile.st_slope,
+                ca=profile.major_vessels,
+                thal=profile.thalassemia,
+            )
+            await predict_heart(heart_data, current_user)
+            prediction_status["heart"] = "updated"
+        except Exception as exc:
+            prediction_status["heart"] = "unavailable"
+            print(f"Heart profile prediction failed: {exc}")
 
-    return {"success": True, "message": "Profile saved and analysis updated."}
+    elif all(value is not None for value in heart_fields.values()):
+        prediction_status["heart"] = "unavailable_unsupported_gender"
+
+    if all(value is not None for value in diabetes_fields.values()):
+        try:
+            diabetes_data = DiabetesData(
+                age=profile.age, gender=profile.gender,
+                polyuria=profile.polyuria, polydipsia=profile.polydipsia,
+                sudden_weight_loss=profile.sudden_weight_loss, weakness=profile.weakness,
+                polyphagia=profile.polyphagia, genital_thrush=profile.genital_thrush,
+                visual_blurring=profile.visual_blurring, itching=profile.itching,
+                irritability=profile.irritability, delayed_healing=profile.delayed_healing,
+                partial_paresis=profile.partial_paresis, muscle_stiffness=profile.muscle_stiffness,
+                alopecia=profile.alopecia, obesity=profile.obesity,
+            )
+            await predict_diabetes(diabetes_data, current_user)
+            prediction_status["diabetes"] = "updated"
+        except Exception as exc:
+            prediction_status["diabetes"] = "unavailable"
+            print(f"Diabetes profile prediction failed: {exc}")
+
+    return {
+        "success": True,
+        "message": "Profile saved. Predictions run only when all required clinical inputs are provided.",
+        "prediction_status": prediction_status,
+    }
 
 @router.get("/profile")
 async def get_patient_profile(current_user: User = Depends(get_current_user)):

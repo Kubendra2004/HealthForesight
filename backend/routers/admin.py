@@ -57,14 +57,14 @@ def get_all_users(db: Session = Depends(get_db), admin: User = Depends(get_curre
 
 @router.get("/models/stats")
 def get_model_stats(admin: User = Depends(get_current_admin)):
-    # Hardcoded from model_performance.md for stability
+    # Report model inventory without presenting unverified development metrics.
     return [
-        {"name": "Diabetes Risk", "target": "Class", "accuracy": "96.97%", "type": "Disease"},
-        {"name": "Heart Disease", "target": "Presence", "accuracy": "91.80%", "type": "Disease"},
-        {"name": "Hospital Beds", "target": "Occupancy", "accuracy": "94.92%", "type": "Resource"},
-        {"name": "ICU Units", "target": "Count", "accuracy": "96.50%", "type": "Resource"},
-        {"name": "Oxygen Usage", "target": "Cylinders", "accuracy": "95.80%", "type": "Resource"},
-        {"name": "Clustering", "target": "Risk Groups", "accuracy": "0.40 (Silhouette)", "type": "Unsupervised"},
+        {"name": "Diabetes Risk", "target": "Class", "accuracy": None, "type": "Disease", "validation_status": "not_clinically_validated"},
+        {"name": "Heart Disease", "target": "Presence", "accuracy": None, "type": "Disease", "validation_status": "not_clinically_validated"},
+        {"name": "Hospital Beds", "target": "Occupancy", "accuracy": None, "type": "Resource", "validation_status": "not_independently_validated"},
+        {"name": "ICU Units", "target": "Count", "accuracy": None, "type": "Resource", "validation_status": "not_independently_validated"},
+        {"name": "Oxygen Usage", "target": "Cylinders", "accuracy": None, "type": "Resource", "validation_status": "not_independently_validated"},
+        {"name": "Clustering", "target": "Risk Groups", "accuracy": None, "type": "Unsupervised", "validation_status": "exploratory"},
     ]
 
 from pydantic import BaseModel

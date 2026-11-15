@@ -35,9 +35,7 @@ class HeartDiseaseData(BaseModel):
                 "oldpeak": 2.3,
                 "slope": 0,
                 "ca": 0,
-                "thal": 1,
-                "prediction": 1,
-                "probability": 0.85
+                "thal": 1
             }
         }
 
@@ -80,9 +78,7 @@ class DiabetesData(BaseModel):
                 "partial_paresis": 0,
                 "muscle_stiffness": 1,
                 "alopecia": 1,
-                "obesity": 1,
-                "prediction": 1,
-                "probability": 0.92
+                "obesity": 1
             }
         }
 
