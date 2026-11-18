@@ -130,7 +130,7 @@ const Signup = () => {
       <div className="auth-container-centered">
         {/* Signup Form */}
         <motion.div
-          className="auth-form-container glass-card"
+          className="auth-form-container"
           initial={{ opacity: 0, y: 50, scale: 0.95 }}
           animate={{ opacity: 1, y: 0, scale: 1 }}
           exit={{ opacity: 0, y: -50, scale: 0.95 }}

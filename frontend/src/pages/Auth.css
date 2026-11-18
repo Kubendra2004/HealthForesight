@@ -24,3 +24,10 @@
 @media (max-width: 480px) { .auth-page { align-items: flex-start; padding: 16px 13px; }.auth-page-signup { padding: 8px 13px; }.auth-page-signup .auth-container-centered { min-height: calc(100svh - 16px); padding-block: 8px; }.auth-layout { margin-block: auto; }.auth-brand { font-size: 16px; }.auth-brand-mark { width: 33px; height: 33px; border-radius: 10px; }.auth-story-copy { margin-top: 23px; }.auth-story-copy h1 { font-size: 35px; }.auth-story-copy p { font-size: 9px; }.auth-form-container { min-height: 0; padding: 25px 19px 19px; border-radius: 15px; }.form-header { margin-bottom: 19px; }.form-header h2 { font-size: 24px; }.form-group { margin-bottom: 12px; }.form-group .MuiOutlinedInput-input { padding: 12px 10px; }.auth-submit.MuiButton-root { min-height: 44px; }.auth-form-note { padding-top: 15px; font-size: 6px; }.auth-container-centered .auth-form-container { padding: 24px 17px 19px; }.auth-container-centered .form-header { margin-bottom: 17px; } }
 @media (max-height: 700px) and (min-width: 821px) { .auth-layout { min-height: calc(100svh - 34px); }.auth-story { padding-top: 23px; padding-bottom: 19px; }.auth-story-copy { margin-top: 40px; }.auth-scene { min-height: 160px; }.auth-scene-orbit { width: 180px; }.auth-scene-orbit.orbit-b { width: 125px; }.auth-scene-caption { bottom: 2px; }.auth-form-container { padding-block: 28px 17px; }.form-header { margin-bottom: 19px; }.form-group { margin-bottom: 11px; } }
 @media (prefers-reduced-motion: reduce) { .auth-page *, .auth-page *::before, .auth-page *::after { animation-duration: 0.01ms !important; animation-iteration-count: 1 !important; transition-duration: 0.01ms !important; scroll-behavior: auto !important; } }
+
+/* Keep the registration panel on the same dark surface at rest and on hover. */
+.auth-container-centered .auth-form-container,
+.auth-container-centered .auth-form-container:hover {
+  color: #eaf8f3;
+  background: linear-gradient(145deg, rgba(18, 43, 46, 0.9), rgba(9, 28, 33, 0.95));
+}
