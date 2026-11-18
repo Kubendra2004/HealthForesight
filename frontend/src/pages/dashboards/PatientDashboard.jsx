@@ -160,6 +160,18 @@ export default function PatientDashboard() {
   // Predictions and risk state
   const [heartPrediction, setHeartPrediction] = useState(null);
   const [diabetesPrediction, setDiabetesPrediction] = useState(null);
+  const [predictionDetails, setPredictionDetails] = useState({});
+
+  const getPredictionHelp = (modelName, fallback) => {
+    const details = predictionDetails[modelName];
+    if (details?.missing_inputs?.length) {
+      const missing = details.missing_inputs
+        .map((field) => field.replaceAll("_", " "))
+        .join(", ");
+      return `Missing profile inputs: ${missing}. No values are guessed.`;
+    }
+    return details?.message || fallback;
+  };
 
   const modelOutputStyle = { label: "Exploratory", color: "#475569", bg: "#f1f5f9" };
 
@@ -323,12 +335,16 @@ export default function PatientDashboard() {
   // Fetch predictions on load
   useEffect(() => {
     const fetchPredictions = async () => {
-      if (!patientId) return;
+      // Don't ask the API for model history until the profile check has
+      // confirmed that this patient has a saved profile.
+      if (!patientId || !profileData) return;
 
       try {
         // Check MongoDB for latest predictions
         const token = localStorage.getItem("token");
         const headers = { Authorization: `Bearer ${token}` };
+        setHeartPrediction(null);
+        setDiabetesPrediction(null);
 
         // Fetch heart prediction from MongoDB
         const heartRes = await fetch(
@@ -355,10 +371,13 @@ export default function PatientDashboard() {
     };
 
     fetchPredictions();
-  }, [patientId]);
+  }, [patientId, Boolean(profileData)]);
 
-  const handleOnboardingComplete = async (data) => {
+  const handleOnboardingComplete = async (saveResult) => {
     try {
+      setHeartPrediction(null);
+      setDiabetesPrediction(null);
+      setPredictionDetails(saveResult?.prediction_details || {});
       // 1. Fetch the LATEST full profile from backend (ensures we have processed fields like 'obesity')
       // The modal already saved it, so we just GET it now.
       const token = localStorage.getItem("token");
@@ -522,22 +541,26 @@ export default function PatientDashboard() {
                   title="Diabetes Model Output"
                   icon="🩺"
                   value={
-                    diabetesPrediction ? (diabetesPrediction.prediction === 1 ? "Positive classification" : "Negative classification") : "No result"
+                    diabetesPrediction ? (diabetesPrediction.prediction === 1 ? "Positive classification" : "Negative classification") : "Not generated"
                   }
                   level={modelOutputStyle.label}
                   colorProp={modelOutputStyle}
-                  sub="Exploratory only; not a clinical risk estimate"
+                  sub={diabetesPrediction
+                    ? "Exploratory model output only; not a clinical diagnosis."
+                    : getPredictionHelp("diabetes", "Complete every diabetes symptom answer in Health Profile to generate an output. Unknown values are not treated as No.")}
                   delay={0.2}
                 />
                 <RiskCard
                   title="Heart Disease Model Output"
                   icon="❤️"
                   value={
-                    heartPrediction ? (heartPrediction.prediction === 1 ? "Positive classification" : "Negative classification") : "No result"
+                    heartPrediction ? (heartPrediction.prediction === 1 ? "Positive classification" : "Negative classification") : "Not generated"
                   }
                   level={modelOutputStyle.label}
                   colorProp={modelOutputStyle}
-                  sub="Exploratory only; not a clinical risk estimate"
+                  sub={heartPrediction
+                    ? "Exploratory model output only; not a clinical diagnosis."
+                    : getPredictionHelp("heart", "Complete all heart model inputs in Health Profile to generate an output. Missing values are not guessed.")}
                   delay={0.3}
                 />
 

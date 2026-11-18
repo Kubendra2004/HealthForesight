@@ -225,14 +225,14 @@ export default function OnboardingModal({ open, onClose, user, onComplete }) {
       }
 
       // Single API Call -> Backend handles predictions
-      await axios.post(
+      const saveResponse = await axios.post(
           `${API_BASE_URL}/portal/profile`,
           profilePayload,
           { headers }
       );
 
       // Notify parent to refresh data
-      if (onComplete) onComplete(formData);
+      if (onComplete) onComplete(saveResponse.data);
       onClose();
     } catch (err) {
       console.error("Onboarding error:", err);
@@ -398,10 +398,10 @@ export default function OnboardingModal({ open, onClose, user, onComplete }) {
 
             <Accordion variant="outlined" sx={{ bgcolor: '#f1f5f9' }}>
                 <AccordionSummary expandIcon={<ExpandMoreIcon />}>
-                    <Typography sx={{ fontWeight: 600, color: '#475569' }}>Advanced Lab Results (Optional)</Typography>
+                    <Typography sx={{ fontWeight: 600, color: '#475569' }}>Additional Heart Model Inputs</Typography>
                 </AccordionSummary>
                 <AccordionDetails>
-                    <Typography variant="caption" sx={{ mb: 2, display: 'block' }}>Only fill this if you have a medical report.</Typography>
+                    <Typography variant="caption" sx={{ mb: 2, display: 'block' }}>The heart model requires every field below. Leave unknown values blank; the app will explain that no output can be generated rather than guessing.</Typography>
                     <Box sx={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 2 }}>
                         <TextField label="ST Depression (Oldpeak)" name="st_depression" type="number" value={formData.st_depression} onChange={handleChange} fullWidth placeholder="0.0" />
                         <TextField select label="ST Slope" name="st_slope" value={formData.st_slope} onChange={handleChange} fullWidth>
@@ -456,9 +456,10 @@ export default function OnboardingModal({ open, onClose, user, onComplete }) {
              
              <Accordion variant="outlined">
                 <AccordionSummary expandIcon={<ExpandMoreIcon />}>
-                    <Typography>More Symptoms (Optional)</Typography>
+                    <Typography>More Symptoms (Required for model output)</Typography>
                 </AccordionSummary>
                 <AccordionDetails>
+                   <Typography variant="caption" sx={{ mb: 2, display: 'block' }}>The current diabetes model needs every symptom answer. Unknown answers remain unanswered and prevent a prediction; do not guess.</Typography>
                    <Box sx={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 2 }}>
                         <TextField select label="Excessive Hunger?" name="polyphagia" value={formData.polyphagia} onChange={handleChange} fullWidth>
                             <MenuItem value="">Unknown</MenuItem>

@@ -130,6 +130,7 @@ async def save_patient_profile(
         "alopecia": profile.alopecia, "obesity": profile.obesity,
     }
     prediction_status = {"heart": "skipped_missing_inputs", "diabetes": "skipped_missing_inputs"}
+    prediction_details = {}
 
     if all(value is not None for value in heart_fields.values()) and profile.gender in {"Male", "Female"}:
         try:
@@ -152,10 +153,21 @@ async def save_patient_profile(
             prediction_status["heart"] = "updated"
         except Exception as exc:
             prediction_status["heart"] = "unavailable"
+            prediction_details["heart"] = {"message": str(exc)}
             print(f"Heart profile prediction failed: {exc}")
 
     elif all(value is not None for value in heart_fields.values()):
         prediction_status["heart"] = "unavailable_unsupported_gender"
+
+    if prediction_status["heart"] == "skipped_missing_inputs":
+        prediction_details["heart"] = {
+            "missing_inputs": [name for name, value in heart_fields.items() if value is None],
+            "message": "Complete the listed heart model inputs to generate an output. No missing values are guessed.",
+        }
+    elif prediction_status["heart"] == "unavailable_unsupported_gender":
+        prediction_details["heart"] = {
+            "message": "The current heart model supports only the training categories Male and Female.",
+        }
 
     if all(value is not None for value in diabetes_fields.values()):
         try:
@@ -173,12 +185,20 @@ async def save_patient_profile(
             prediction_status["diabetes"] = "updated"
         except Exception as exc:
             prediction_status["diabetes"] = "unavailable"
+            prediction_details["diabetes"] = {"message": str(exc)}
             print(f"Diabetes profile prediction failed: {exc}")
+
+    if prediction_status["diabetes"] == "skipped_missing_inputs":
+        prediction_details["diabetes"] = {
+            "missing_inputs": [name for name, value in diabetes_fields.items() if value is None],
+            "message": "Answer each diabetes symptom question, including the questions under More Symptoms, to generate an output. Unknown answers are not treated as No.",
+        }
 
     return {
         "success": True,
         "message": "Profile saved. Predictions run only when all required clinical inputs are provided.",
         "prediction_status": prediction_status,
+        "prediction_details": prediction_details,
     }
 
 @router.get("/profile")
