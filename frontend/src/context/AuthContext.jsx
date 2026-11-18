@@ -4,6 +4,27 @@ import { API_BASE_URL } from '../lib/api';
 
 const AuthContext = createContext(null);
 
+const decodeJwtPayload = (token) => {
+  const encodedPayload = token?.split('.')[1];
+  if (!encodedPayload) throw new Error('The server returned an invalid session token.');
+
+  const base64 = encodedPayload.replace(/-/g, '+').replace(/_/g, '/');
+  const paddedBase64 = base64.padEnd(Math.ceil(base64.length / 4) * 4, '=');
+  const binaryPayload = atob(paddedBase64);
+  const bytes = Uint8Array.from(binaryPayload, (character) => character.charCodeAt(0));
+  return JSON.parse(new TextDecoder().decode(bytes));
+};
+
+const getRequestError = (error, fallback) => {
+  const detail = error.response?.data?.detail;
+  if (typeof detail === 'string') return detail;
+  if (Array.isArray(detail)) {
+    return detail.map((item) => item?.msg || String(item)).join(' ');
+  }
+  if (error.request) return 'Unable to reach the HealthForesight service. Check that the backend is running.';
+  return error.message || fallback;
+};
+
 export const useAuth = () => {
   const context = useContext(AuthContext);
   if (!context) {
@@ -43,8 +64,7 @@ export const AuthProvider = ({ children }) => {
 
       const { access_token } = response.data;
       
-      // Decode JWT to get user info (simplified - in production use proper JWT decode)
-      const payload = JSON.parse(atob(access_token.split('.')[1]));
+      const payload = decodeJwtPayload(access_token);
       const userData = {
         username: payload.sub,
         role: payload.role,
@@ -64,7 +84,7 @@ export const AuthProvider = ({ children }) => {
       console.error('Login error:', error);
       return {
         success: false,
-        error: error.response?.data?.detail || 'Invalid credentials'
+        error: getRequestError(error, 'Invalid credentials')
       };
     }
   };
@@ -76,8 +96,7 @@ export const AuthProvider = ({ children }) => {
       
       const { access_token } = response.data;
       
-      // Decode JWT to get user info
-      const payload = JSON.parse(atob(access_token.split('.')[1]));
+      const payload = decodeJwtPayload(access_token);
       const newUser = {
         username: payload.sub,
         role: payload.role,
@@ -97,7 +116,7 @@ export const AuthProvider = ({ children }) => {
       console.error('Signup error:', error);
       return {
         success: false,
-        error: error.response?.data?.detail || 'Signup failed. Please try again.'
+        error: getRequestError(error, 'Signup failed. Please try again.')
       };
     }
   };

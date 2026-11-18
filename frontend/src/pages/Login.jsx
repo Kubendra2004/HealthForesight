@@ -1,229 +1,150 @@
-import React, { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
-import { motion, AnimatePresence } from 'framer-motion';
+import { useState } from "react";
+import { Link, useNavigate } from "react-router-dom";
+import { motion, useReducedMotion } from "framer-motion";
 import {
-  TextField,
+  Alert,
   Button,
+  CircularProgress,
   IconButton,
   InputAdornment,
-  Alert,
-  CircularProgress
-} from '@mui/material';
+  TextField,
+} from "@mui/material";
 import {
+  ArrowBack,
+  ArrowForward,
+  AutoAwesome,
+  Email,
+  Favorite,
+  Lock,
   Visibility,
   VisibilityOff,
-  Email,
-  Lock,
-  ArrowForward,
-  Favorite
-} from '@mui/icons-material';
-import { useAuth } from '../context/AuthContext';
-import './Auth.css';
+} from "@mui/icons-material";
+import { useAuth } from "../context/AuthContext";
+import "./Auth.css";
 
 const Login = () => {
   const navigate = useNavigate();
   const { login } = useAuth();
-  
-  const [formData, setFormData] = useState({
-    email: '',
-    password: ''
-  });
-  
+  const reduceMotion = useReducedMotion();
+  const [formData, setFormData] = useState({ email: "", password: "" });
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState('');
+  const [error, setError] = useState("");
 
-  const handleChange = (e) => {
-    setFormData({
-      ...formData,
-      [e.target.name]: e.target.value
-    });
-    setError('');
+  const handleChange = (event) => {
+    setFormData((current) => ({ ...current, [event.target.name]: event.target.value }));
+    setError("");
   };
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    setError('');
+  const handleSubmit = async (event) => {
+    event.preventDefault();
+    setError("");
     setLoading(true);
-
     const result = await login(formData.email, formData.password);
-    
     if (result.success) {
-      // Redirect based on user role (automatically detected from backend)
-      const role = result.user.role;
-      navigate(`/dashboard/${role}`);
+      navigate(`/dashboard/${result.user.role}`);
     } else {
       setError(result.error);
     }
-    
     setLoading(false);
   };
 
-  return (
-    <motion.div
-      className="auth-page"
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      exit={{ opacity: 0 }}
-      transition={{ duration: 0.3 }}
-    >
-      {/* Animated Background */}
-      <div className="animated-gradient-bg"></div>
-      
-      {/* Floating Particles */}
-      <div className="auth-particles">
-        {[...Array(30)].map((_, i) => (
-          <div
-            key={i}
-            className="particle"
-            style={{
-              left: `${Math.random() * 100}%`,
-              animationDelay: `${Math.random() * 20}s`,
-              animationDuration: `${Math.random() * 10 + 10}s`
-            }}
-          />
-        ))}
-      </div>
+  const enter = reduceMotion ? {} : { initial: { opacity: 0, y: 22 }, animate: { opacity: 1, y: 0 } };
 
-      <div className="auth-container-centered">
-        {/* Login Form */}
-        <motion.div
-          className="auth-form-container glass-card"
-          initial={{ opacity: 0, y: 50, scale: 0.95 }}
+  return (
+    <main className="auth-page auth-page-login">
+      <div className="auth-atmosphere" aria-hidden="true"><span /><span /><span /></div>
+      <div className="auth-layout">
+        <motion.section className="auth-story" {...enter} transition={{ duration: reduceMotion ? 0 : 0.8, ease: [0.22, 1, 0.36, 1] }}>
+          <Link className="auth-brand" to="/" aria-label="HealthForesight home">
+            <span className="auth-brand-mark"><Favorite /></span>
+            <span>Health<span>Foresight</span></span>
+          </Link>
+          <div className="auth-story-copy">
+            <span className="auth-eyebrow"><i /> YOUR CARE WORKSPACE</span>
+            <h1>Clarity for care.<br /><span>Room to focus.</span></h1>
+            <p>Sign in to bring patient context, clinical workflows, and the next step into view.</p>
+          </div>
+          <div className="auth-scene" aria-hidden="true">
+            <div className="auth-scene-orbit orbit-a" /><div className="auth-scene-orbit orbit-b" />
+            <div className="auth-scene-core"><Favorite /></div>
+            <span className="auth-scene-node node-a"><AutoAwesome /></span>
+            <span className="auth-scene-node node-b"><Email /></span>
+            <div className="auth-scene-caption"><span>CARE</span><i /><span>CONTEXT</span><i /><span>CONNECTION</span></div>
+          </div>
+          <div className="auth-story-foot"><span className="auth-foot-icon"><Favorite /></span><span>Thoughtful technology.<br /><strong>People at the center.</strong></span><span className="auth-foot-line" /></div>
+        </motion.section>
+
+        <motion.section
+          className="auth-form-container"
+          initial={reduceMotion ? false : { opacity: 0, y: 28, scale: 0.985 }}
           animate={{ opacity: 1, y: 0, scale: 1 }}
-          exit={{ opacity: 0, y: -50, scale: 0.95 }}
-          transition={{ duration: 0.4, ease: [0.4, 0, 0.2, 1] }}
+          transition={reduceMotion ? { duration: 0 } : { delay: 0.12, duration: 0.8, ease: [0.22, 1, 0.36, 1] }}
+          aria-labelledby="login-title"
         >
           <div className="auth-form">
+            <Link className="auth-mobile-brand" to="/">
+              <span className="auth-brand-mark"><Favorite /></span>
+              <span>Health<span>Foresight</span></span>
+            </Link>
             <div className="form-header">
-              <div className="brand-logo-small">
-                <Favorite style={{ fontSize: '2.5rem', color: '#2563eb' }} />
-              </div>
-              <h2>Welcome Back</h2>
-              <p>Sign in to access your dashboard</p>
+              <span className="form-kicker">WELCOME BACK</span>
+              <h2 id="login-title">Sign in to continue</h2>
+              <p>Your workspace is ready when you are.</p>
             </div>
 
-            <AnimatePresence mode="wait">
-              {error && (
-                <motion.div
-                  initial={{ opacity: 0, height: 0, marginBottom: 0 }}
-                  animate={{ opacity: 1, height: 'auto', marginBottom: 16 }}
-                  exit={{ opacity: 0, height: 0, marginBottom: 0 }}
-                  transition={{ duration: 0.3 }}
-                >
-                  <Alert severity="error">{error}</Alert>
-                </motion.div>
-              )}
-            </AnimatePresence>
+            {error && <Alert className="auth-alert" severity="error">{error}</Alert>}
 
             <form onSubmit={handleSubmit}>
-              <motion.div
-                className="form-group"
-                initial={{ opacity: 0, x: -20 }}
-                animate={{ opacity: 1, x: 0 }}
-                transition={{ delay: 0.1 }}
-              >
+              <div className="form-group">
                 <TextField
                   fullWidth
-                  label="Email or Username"
+                  label="Email or username"
                   name="email"
                   type="text"
                   value={formData.email}
                   onChange={handleChange}
+                  autoComplete="username"
                   required
-                  InputProps={{
-                    startAdornment: (
-                      <InputAdornment position="start">
-                        <Email color="action" />
-                      </InputAdornment>
-                    ),
-                  }}
+                  InputProps={{ startAdornment: <InputAdornment position="start"><Email /></InputAdornment> }}
                 />
-              </motion.div>
+              </div>
 
-              <motion.div
-                className="form-group"
-                initial={{ opacity: 0, x: -20 }}
-                animate={{ opacity: 1, x: 0 }}
-                transition={{ delay: 0.15 }}
-              >
+              <div className="form-group">
                 <TextField
                   fullWidth
                   label="Password"
                   name="password"
-                  type={showPassword ? 'text' : 'password'}
+                  type={showPassword ? "text" : "password"}
                   value={formData.password}
                   onChange={handleChange}
+                  autoComplete="current-password"
                   required
                   InputProps={{
-                    startAdornment: (
-                      <InputAdornment position="start">
-                        <Lock color="action" />
-                      </InputAdornment>
-                    ),
+                    startAdornment: <InputAdornment position="start"><Lock /></InputAdornment>,
                     endAdornment: (
                       <InputAdornment position="end">
-                        <IconButton
-                          onClick={() => setShowPassword(!showPassword)}
-                          edge="end"
-                        >
+                        <IconButton type="button" aria-label={showPassword ? "Hide password" : "Show password"} onClick={() => setShowPassword((shown) => !shown)} edge="end">
                           {showPassword ? <VisibilityOff /> : <Visibility />}
                         </IconButton>
                       </InputAdornment>
                     ),
                   }}
                 />
-              </motion.div>
-
-              <motion.div
-                className="form-footer"
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                transition={{ delay: 0.2 }}
-              >
-                <Link to="/forgot-password" className="forgot-link">
-                  Forgot Password?
-                </Link>
-              </motion.div>
-
-              <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.25 }}
-              >
-                <Button
-                  type="submit"
-                  fullWidth
-                  variant="contained"
-                  size="large"
-                  disabled={loading}
-                  sx={{
-                    mt: 3,
-                    mb: 2,
-                    py: 1.5,
-                    background: 'linear-gradient(135deg, #2563eb 0%, #1e40af 100%)',
-                    '&:hover': {
-                      background: 'linear-gradient(135deg, #1e40af 0%, #1e3a8a 100%)',
-                    }
-                  }}
-                  endIcon={loading ? <CircularProgress size={20} color="inherit" /> : <ArrowForward />}
-                >
-                  {loading ? 'Signing In...' : 'Sign In'}
-                </Button>
-              </motion.div>
-
-              <div className="signup-link">
-                Don't have an account? <Link to="/signup">Sign Up</Link>
               </div>
 
-              <div className="back-home">
-                <Link to="/">← Back to Home</Link>
-              </div>
+              <Button className="auth-submit" type="submit" fullWidth variant="contained" size="large" disabled={loading} endIcon={loading ? <CircularProgress size={18} color="inherit" /> : <ArrowForward />}>
+                {loading ? "Signing in…" : "Sign in to workspace"}
+              </Button>
+
+              <p className="signup-link">New to HealthForesight? <Link to="/signup">Create an account</Link></p>
+              <Link className="back-home" to="/"><ArrowBack /> Back to home</Link>
             </form>
           </div>
-        </motion.div>
+          <p className="auth-form-note">For care teams and patients using a configured HealthForesight service.</p>
+        </motion.section>
       </div>
-    </motion.div>
+    </main>
   );
 };
 

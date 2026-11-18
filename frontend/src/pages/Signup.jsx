@@ -16,6 +16,7 @@ import {
 import {
   Visibility,
   VisibilityOff,
+  ArrowBack,
   Email,
   Lock,
   Person,
@@ -30,7 +31,7 @@ const Signup = () => {
   const { signup } = useAuth();
   
   const [formData, setFormData] = useState({
-    fullName: '',
+    username: '',
     email: '',
     password: '',
     confirmPassword: '',
@@ -67,7 +68,7 @@ const Signup = () => {
       return;
     }
 
-    if (formData.role === 'doctor' && !formData.specialization) {
+    if (formData.role === 'doctor' && !formData.specialization.trim()) {
       setError('Please enter your specialization');
       return;
     }
@@ -76,7 +77,7 @@ const Signup = () => {
 
     // Prepare signup data according to backend API
     const signupData = {
-      username: formData.email.split('@')[0], // Use email prefix as username
+      username: formData.username.trim(),
       email: formData.email,
       password: formData.password,
       role: formData.role
@@ -102,7 +103,7 @@ const Signup = () => {
 
   return (
     <motion.div
-      className="auth-page"
+      className="auth-page auth-page-signup"
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
@@ -138,10 +139,10 @@ const Signup = () => {
           <div className="auth-form">
             <div className="form-header">
               <div className="brand-logo-small">
-                <Favorite style={{ fontSize: '2.5rem', color: '#2563eb' }} />
+                <Favorite />
               </div>
               <h2>Create Account</h2>
-              <p>Join HealthForesight and get started</p>
+              <p>Create your workspace account to get started.</p>
             </div>
 
             <AnimatePresence mode="wait">
@@ -166,11 +167,14 @@ const Signup = () => {
               >
                 <TextField
                   fullWidth
-                  label="Full Name"
-                  name="fullName"
-                  value={formData.fullName}
+                  label="Username"
+                  name="username"
+                  value={formData.username}
                   onChange={handleChange}
                   required
+                  autoComplete="username"
+                  inputProps={{ minLength: 3, maxLength: 50, pattern: "[^\\s]+" }}
+                  helperText="Use this username or your email address to sign in."
                   InputProps={{
                     startAdornment: (
                       <InputAdornment position="start">
@@ -195,6 +199,8 @@ const Signup = () => {
                   value={formData.email}
                   onChange={handleChange}
                   required
+                  autoComplete="email"
+                  inputProps={{ maxLength: 100 }}
                   InputProps={{
                     startAdornment: (
                       <InputAdornment position="start">
@@ -212,12 +218,13 @@ const Signup = () => {
                 transition={{ delay: 0.2 }}
               >
                 <FormControl fullWidth required>
-                  <InputLabel>I am a</InputLabel>
+                  <InputLabel>Account type</InputLabel>
                   <Select
                     name="role"
                     value={formData.role}
                     onChange={handleChange}
-                    label="I am a"
+                    label="Account type"
+                    inputProps={{ "aria-label": "Choose account type" }}
                   >
                     <MenuItem value="patient">Patient</MenuItem>
                     <MenuItem value="doctor">Doctor</MenuItem>
@@ -242,6 +249,7 @@ const Signup = () => {
                       onChange={handleChange}
                       required
                       placeholder="e.g., Cardiology, Neurology"
+                      inputProps={{ maxLength: 100 }}
                     />
                   </motion.div>
                 )}
@@ -261,6 +269,8 @@ const Signup = () => {
                   value={formData.password}
                   onChange={handleChange}
                   required
+                  autoComplete="new-password"
+                  inputProps={{ minLength: 6 }}
                   InputProps={{
                     startAdornment: (
                       <InputAdornment position="start">
@@ -270,6 +280,8 @@ const Signup = () => {
                     endAdornment: (
                       <InputAdornment position="end">
                         <IconButton
+                          type="button"
+                          aria-label={showPassword ? 'Hide password' : 'Show password'}
                           onClick={() => setShowPassword(!showPassword)}
                           edge="end"
                         >
@@ -295,6 +307,7 @@ const Signup = () => {
                   value={formData.confirmPassword}
                   onChange={handleChange}
                   required
+                  autoComplete="new-password"
                   InputProps={{
                     startAdornment: (
                       <InputAdornment position="start">
@@ -304,6 +317,8 @@ const Signup = () => {
                     endAdornment: (
                       <InputAdornment position="end">
                         <IconButton
+                          type="button"
+                          aria-label={showConfirmPassword ? 'Hide confirmation password' : 'Show confirmation password'}
                           onClick={() => setShowConfirmPassword(!showConfirmPassword)}
                           edge="end"
                         >
@@ -321,20 +336,12 @@ const Signup = () => {
                 transition={{ delay: 0.35 }}
               >
                 <Button
+                  className="auth-submit"
                   type="submit"
                   fullWidth
                   variant="contained"
                   size="large"
                   disabled={loading}
-                  sx={{
-                    mt: 3,
-                    mb: 2,
-                    py: 1.5,
-                    background: 'linear-gradient(135deg, #2563eb 0%, #1e40af 100%)',
-                    '&:hover': {
-                      background: 'linear-gradient(135deg, #1e40af 0%, #1e3a8a 100%)',
-                    }
-                  }}
                   endIcon={loading ? <CircularProgress size={20} color="inherit" /> : <ArrowForward />}
                 >
                   {loading ? 'Creating Account...' : 'Create Account'}
@@ -345,9 +352,7 @@ const Signup = () => {
                 Already have an account? <Link to="/login">Sign In</Link>
               </div>
 
-              <div className="back-home">
-                <Link to="/">← Back to Home</Link>
-              </div>
+              <Link className="back-home" to="/"><ArrowBack /> Back to home</Link>
             </form>
           </div>
         </motion.div>

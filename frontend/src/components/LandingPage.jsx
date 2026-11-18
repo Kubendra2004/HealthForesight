@@ -6,7 +6,6 @@ import {
   ArrowDownward,
   ArrowForward,
   ArrowOutward,
-  AutoAwesome,
   Favorite,
   Hub,
   Insights,
@@ -17,10 +16,11 @@ import {
   Today,
   TrendingUp,
   VolunteerActivism,
-  WaterDrop,
   Close,
 } from "@mui/icons-material";
 import "./LandingPage.css";
+
+const IS_STATIC_SHOWCASE = import.meta.env.MODE === "pages";
 
 const reveal = {
   hidden: { opacity: 0, y: 28 },
@@ -33,7 +33,10 @@ const LandingPage = () => {
 
   useEffect(() => {
     window.scrollTo(0, 0);
-    const updateNav = () => setScrolled(window.scrollY > 20);
+    const updateNav = () => {
+      const hero = document.querySelector(".hero-section");
+      setScrolled(Boolean(hero && hero.getBoundingClientRect().bottom <= 84));
+    };
     updateNav();
     window.addEventListener("scroll", updateNav, { passive: true });
     return () => window.removeEventListener("scroll", updateNav);
@@ -64,7 +67,7 @@ function Navigation({ scrolled, menuOpen, onToggle, onNavigate }) {
     <header className={`site-header ${scrolled ? "is-scrolled" : ""}`}>
       <nav className="site-nav" aria-label="Main navigation">
         <Link className="brand" to="/" onClick={onNavigate} aria-label="HealthForesight home">
-          <span className="brand-mark"><img src={`${import.meta.env.BASE_URL}HealthForesight.png`} alt="" /></span>
+          <span className="brand-mark" aria-hidden="true"><Favorite /></span>
           <span className="brand-name">Health<span>Foresight</span></span>
         </Link>
 
@@ -84,9 +87,13 @@ function Navigation({ scrolled, menuOpen, onToggle, onNavigate }) {
             <a href="#intelligence" onClick={onNavigate}>Intelligence</a>
             <a href="#approach" onClick={onNavigate}>Our approach</a>
           </div>
-          <Link className="nav-cta" to="/login" onClick={onNavigate}>
+          <WorkspaceLink
+            className="nav-cta"
+            onNavigate={onNavigate}
+            staticContent={<>Explore <ArrowDownward fontSize="small" /></>}
+          >
             Sign in <ArrowOutward fontSize="small" />
-          </Link>
+          </WorkspaceLink>
         </div>
       </nav>
     </header>
@@ -95,115 +102,57 @@ function Navigation({ scrolled, menuOpen, onToggle, onNavigate }) {
 
 function HeroSection() {
   const reduceMotion = useReducedMotion();
-  const transition = reduceMotion ? { duration: 0 } : { duration: 0.75, ease: [0.22, 1, 0.36, 1] };
+  const updateSpotlight = (event) => {
+    if (reduceMotion || event.pointerType !== "mouse") return;
+    const bounds = event.currentTarget.getBoundingClientRect();
+    event.currentTarget.style.setProperty("--pointer-x", `${event.clientX - bounds.left}px`);
+    event.currentTarget.style.setProperty("--pointer-y", `${event.clientY - bounds.top}px`);
+  };
 
   return (
-    <section className="hero-section" aria-labelledby="hero-title">
-      <div className="hero-backdrop" aria-hidden="true">
-        <div className="hero-orb hero-orb-one" />
-        <div className="hero-orb hero-orb-two" />
-        <div className="hero-grid" />
-      </div>
+    <section className="hero-section hero-cinematic" aria-labelledby="hero-title" onPointerMove={updateSpotlight}>
+      <div className="hero-backdrop" aria-hidden="true"><div className="hero-spotlight" /><div className="hero-grid" /></div>
       <div className="hero-container">
-        <motion.div
-          className="hero-copy"
-          initial={reduceMotion ? false : "hidden"}
-          animate="visible"
-          variants={reveal}
-          transition={transition}
-        >
-          <div className="hero-eyebrow"><span className="eyebrow-pulse" /> A clearer view of care</div>
-          <h1 id="hero-title">Better care starts with <span>a better view.</span></h1>
-          <p className="hero-description">
-            Bring patient care, clinical workflows, and hospital operations into one thoughtful workspace—built to help teams see what matters and act with confidence.
-          </p>
-          <div className="hero-actions">
-            <Link className="button button-primary" to="/login">
-              Enter your workspace <ArrowForward />
-            </Link>
-            <a className="button button-quiet" href="#platform">
-              Discover the platform <ArrowDownward />
-            </a>
-          </div>
-          <div className="hero-note"><ShieldOutlined /> Designed around responsible, human-led care</div>
+        <motion.div className="hero-copy" initial={reduceMotion ? false : { opacity: 0, y: 36 }} animate={{ opacity: 1, y: 0 }} transition={reduceMotion ? { duration: 0 } : { duration: 1.15, ease: [0.22, 1, 0.36, 1] }}>
+          <div className="hero-eyebrow"><span className="eyebrow-pulse" /> A new perspective on care</div>
+          <motion.h1 id="hero-title" initial={reduceMotion ? false : { opacity: 0, y: 30, filter: "blur(12px)" }} animate={{ opacity: 1, y: 0, filter: "blur(0px)" }} transition={reduceMotion ? { duration: 0 } : { delay: 0.2, duration: 1.3, ease: [0.22, 1, 0.36, 1] }}>
+            Healthcare,<br /><em>in sync.</em>
+          </motion.h1>
+          <motion.p className="hero-description" initial={reduceMotion ? false : { opacity: 0, y: 18 }} animate={{ opacity: 1, y: 0 }} transition={reduceMotion ? { duration: 0 } : { delay: 0.55, duration: 0.85 }}>
+            A connected workspace for the people, decisions, and details that move care forward.
+          </motion.p>
+          <motion.div className="hero-actions" initial={reduceMotion ? false : { opacity: 0, y: 14 }} animate={{ opacity: 1, y: 0 }} transition={reduceMotion ? { duration: 0 } : { delay: 0.72, duration: 0.75 }}>
+            <a className="button button-primary" href="#platform">Explore the platform <ArrowForward /></a>
+            {!IS_STATIC_SHOWCASE && <Link className="button button-quiet" to="/login">Sign in <ArrowOutward /> </Link>}
+          </motion.div>
+          <div className="hero-footnote"><span className="hero-footnote-dot" /> A shared view for patients, care teams, and operations</div>
         </motion.div>
-
-        <motion.div
-          className="hero-visual-wrap"
-          initial={reduceMotion ? false : { opacity: 0, y: 30, scale: 0.96 }}
-          animate={{ opacity: 1, y: 0, scale: 1 }}
-          transition={reduceMotion ? { duration: 0 } : { delay: 0.18, duration: 0.9, ease: [0.22, 1, 0.36, 1] }}
-        >
-          <ProductPreview />
-        </motion.div>
+        <HeroConstellation reduceMotion={reduceMotion} />
       </div>
-      <a className="hero-scroll" href="#platform" aria-label="Scroll to platform overview">
-        <span /> Scroll to explore
-      </a>
+      <div className="hero-caption"><span>CARE, CONNECTED</span><span className="hero-caption-rule" /><span>PEOPLE AT THE CENTER</span><a href="#platform">Explore what connects it <ArrowDownward /></a></div>
     </section>
   );
 }
 
-function ProductPreview() {
+function HeroConstellation({ reduceMotion }) {
   return (
-    <div className="preview-stage" aria-label="Illustrative HealthForesight interface preview">
-      <div className="preview-halo" />
-      <div className="preview-window">
-        <div className="preview-topbar">
-          <div className="window-dots" aria-hidden="true"><i /><i /><i /></div>
-          <span className="preview-breadcrumb">HealthForesight <b>/</b> Overview</span>
-          <span className="preview-avatar">H</span>
-        </div>
-        <div className="preview-body">
-          <aside className="preview-sidebar" aria-hidden="true">
-            <span className="sidebar-logo"><Favorite /></span>
-            <span className="sidebar-item active"><Hub /></span>
-            <span className="sidebar-item"><Today /></span>
-            <span className="sidebar-item"><MonitorHeart /></span>
-            <span className="sidebar-item"><Insights /></span>
-          </aside>
-          <div className="preview-content">
-            <div className="preview-heading">
-              <div><span className="preview-kicker">YOUR CARE WORKSPACE</span><h2>Good morning.</h2></div>
-              <span className="preview-date"><Today /> Today</span>
-            </div>
-            <div className="preview-summary-grid">
-              <PreviewTile icon={<VolunteerActivism />} label="Patient care" color="mint" />
-              <PreviewTile icon={<MonitorHeart />} label="Clinical insights" color="blue" />
-              <PreviewTile icon={<TrendingUp />} label="Operations" color="violet" />
-            </div>
-            <div className="preview-lower-grid">
-              <div className="preview-chart-card">
-                <div className="chart-card-heading"><div><span>CARE IN FOCUS</span><strong>Connected care, at a glance</strong></div><span className="chart-status"><i /> Overview</span></div>
-                <div className="chart-area" aria-hidden="true">
-                  <div className="chart-lines"><i /><i /><i /><i /></div>
-                  <svg viewBox="0 0 560 150" preserveAspectRatio="none" role="presentation">
-                    <defs><linearGradient id="chartFill" x1="0" x2="0" y1="0" y2="1"><stop offset="0" stopColor="#4de0c1" stopOpacity=".28" /><stop offset="1" stopColor="#4de0c1" stopOpacity="0" /></linearGradient></defs>
-                    <path className="chart-fill" d="M0 112 C35 108 42 64 82 74 S127 104 166 86 S220 40 258 57 S302 101 344 76 S396 32 431 52 S479 75 510 42 S544 45 560 20 V150 H0Z" />
-                    <path className="chart-stroke" d="M0 112 C35 108 42 64 82 74 S127 104 166 86 S220 40 258 57 S302 101 344 76 S396 32 431 52 S479 75 510 42 S544 45 560 20" />
-                  </svg>
-                </div>
-                <div className="chart-footnote"><span>Patient-centered</span><span>Connected workflows</span><span>Human-led decisions</span></div>
-              </div>
-              <div className="preview-side-card">
-                <span className="side-card-icon"><AutoAwesome /></span>
-                <span className="side-card-label">A more connected view</span>
-                <p>Make room for better conversations and more confident coordination.</p>
-                <span className="side-card-link">Explore the platform <ArrowForward /></span>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-      <div className="preview-float preview-float-top"><span className="float-icon float-mint"><Favorite /></span><span><b>Care, connected</b><small>People at the center</small></span><span className="float-spark">✳</span></div>
-      <div className="preview-float preview-float-bottom"><span className="float-icon float-blue"><WaterDrop /></span><span><b>One thoughtful workspace</b><small>Care · insight · operations</small></span></div>
-      <p className="preview-caption">A platform preview · illustrative interface</p>
-    </div>
+    <motion.div className="hero-constellation" initial={reduceMotion ? false : { opacity: 0, scale: 0.88, rotate: -8 }} animate={{ opacity: 1, scale: 1, rotate: 0 }} transition={reduceMotion ? { duration: 0 } : { delay: 0.26, duration: 1.4, ease: [0.2, 0.75, 0.25, 1] }} aria-label="Illustration of connected care, clinical insight, and hospital operations">
+      <div className="constellation-glow" />
+      <div className="constellation-ring ring-outer" /><div className="constellation-ring ring-middle" /><div className="constellation-ring ring-inner" />
+      <svg className="constellation-lines" viewBox="0 0 600 600" aria-hidden="true">
+        <defs><linearGradient id="flowLine" x1="0" x2="1"><stop offset="0" stopColor="#7fffe0" stopOpacity="0" /><stop offset=".5" stopColor="#7fffe0" stopOpacity=".85" /><stop offset="1" stopColor="#b4ff8a" stopOpacity="0" /></linearGradient></defs>
+        <path d="M78 324 C150 323 143 170 246 190 S389 407 519 256" />
+        <path d="M105 464 C192 426 181 282 299 306 S408 151 500 140" />
+        <path d="M103 158 C197 218 177 417 312 409 S408 254 501 457" />
+      </svg>
+      <div className="constellation-core"><span className="core-halo" /><span className="core-symbol"><Favorite /></span><span className="core-label">HEALTH<br />FORESIGHT</span></div>
+      <div className="constellation-node node-care"><span className="node-symbol"><VolunteerActivism /></span><span className="node-copy"><b>Patient care</b><small>People, first</small></span><span className="node-live" /></div>
+      <div className="constellation-node node-insight"><span className="node-symbol"><Insights /></span><span className="node-copy"><b>Clinical insight</b><small>Context, connected</small></span></div>
+      <div className="constellation-node node-flow"><span className="node-symbol"><TrendingUp /></span><span className="node-copy"><b>Operations</b><small>Ready for what’s next</small></span></div>
+      <div className="constellation-spark spark-one" /><div className="constellation-spark spark-two" /><div className="constellation-spark spark-three" />
+      <div className="constellation-coordinate">HF—01 <span>CARE SYSTEM</span></div>
+    </motion.div>
   );
-}
-
-function PreviewTile({ icon, label, color }) {
-  return <div className="preview-tile"><span className={`tile-icon ${color}`}>{icon}</span><span>{label}</span><ArrowOutward className="tile-arrow" /></div>;
 }
 
 const platformItems = [
@@ -314,7 +263,7 @@ function ContactSection() {
         <span className="section-eyebrow">A BETTER VIEW STARTS HERE</span>
         <h2>Make space for<br /><span>better care.</span></h2>
         <p>Step into a more connected healthcare workspace.</p>
-        <Link className="button button-light" to="/login">Explore HealthForesight <ArrowForward /></Link>
+        <a className="button button-light" href="#platform">Explore HealthForesight <ArrowForward /></a>
       </div>
       <div className="contact-decoration" aria-hidden="true"><div /><div /><div /></div>
     </section>
@@ -326,15 +275,22 @@ function Footer() {
     <footer className="site-footer">
       <div className="section-container footer-main">
         <Link className="brand footer-brand" to="/">
-          <span className="brand-mark"><img src={`${import.meta.env.BASE_URL}HealthForesight.png`} alt="" /></span>
+          <span className="brand-mark" aria-hidden="true"><Favorite /></span>
           <span className="brand-name">Health<span>Foresight</span></span>
         </Link>
         <p className="footer-tagline">A clearer view of care.</p>
-        <div className="footer-links"><a href="https://github.com/Kubendra2004/HealthForesight" target="_blank" rel="noreferrer">GitHub <ArrowOutward /></a><a href="mailto:kubendra2004@gmail.com">Contact <ArrowOutward /></a><Link to="/login">Sign in <ArrowOutward /></Link></div>
+        <div className="footer-links"><a href="https://github.com/Kubendra2004/HealthForesight" target="_blank" rel="noreferrer">GitHub <ArrowOutward /></a><a href="mailto:kubendra2004@gmail.com">Contact <ArrowOutward /></a>{!IS_STATIC_SHOWCASE && <Link to="/login">Sign in <ArrowOutward /></Link>}</div>
       </div>
       <div className="section-container footer-bottom"><span>© {new Date().getFullYear()} HealthForesight</span><span>Built for the people who care.</span></div>
     </footer>
   );
+}
+
+function WorkspaceLink({ className, children, staticContent, onNavigate }) {
+  if (IS_STATIC_SHOWCASE) {
+    return <a className={className} href="#platform" onClick={onNavigate}>{staticContent ?? children}</a>;
+  }
+  return <Link className={className} to="/login" onClick={onNavigate}>{children}</Link>;
 }
 
 export default LandingPage;
