@@ -429,7 +429,10 @@ export default function OnboardingModal({ open, onClose, user, onComplete }) {
       case 3: // Symptoms (Simplified)
         return (
           <Box sx={{ display: "flex", flexDirection: "column", gap: 2 }}>
-              <Typography variant="h6" sx={{ fontSize: '1rem' }}>Symptoms & Lifestyle</Typography>
+              <Typography variant="h6" sx={{ fontSize: '1rem' }}>Diabetes Model Symptoms</Typography>
+              <Typography variant="caption" sx={{ display: 'block', mb: 1 }}>
+                Every symptom in this step is required by the current model. Select only answers you know; unanswered fields mean no model output is generated.
+              </Typography>
              
               <Box sx={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 2 }}>
                 <TextField select label="Frequent Urination?" name="polyuria" value={formData.polyuria} onChange={handleChange} fullWidth>
