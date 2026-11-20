@@ -32,11 +32,10 @@ import ActivityFeed from "../../components/ui/ActivityFeed";
 
 // --- Assets & Styles ---
 const glassCard = {
-  background: 'rgba(255, 255, 255, 0.65)',
-  backdropFilter: 'blur(16px)',
-  border: '1px solid rgba(255, 255, 255, 0.3)',
-  borderRadius: '24px',
-  boxShadow: '0 4px 30px rgba(0, 0, 0, 0.05)',
+  background: '#ffffff',
+  border: '1px solid #dbe6ef',
+  borderRadius: '14px',
+  boxShadow: '0 8px 24px rgba(30,72,104,0.07)',
   overflow: 'hidden'
 };
 
@@ -45,8 +44,7 @@ const floatNavStyle = {
   bottom: 24,
   left: '50%',
   transform: 'translateX(-50%)',
-  background: 'rgba(255, 255, 255, 0.8)',
-  backdropFilter: 'blur(20px)',
+  background: '#ffffff',
   borderRadius: '50px',
   padding: '8px 16px',
   boxShadow: '0 8px 32px rgba(0,0,0,0.1)',

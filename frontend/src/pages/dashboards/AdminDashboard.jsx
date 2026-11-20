@@ -33,11 +33,10 @@ import { useAuth } from "../../context/AuthContext";
 
 // Glassmorphism Style Constant
 const glassStyle = {
-    background: "rgba(255, 255, 255, 0.7)",
-    backdropFilter: "blur(10px)",
-    borderRadius: "16px",
-    border: "1px solid rgba(255, 255, 255, 0.3)",
-    boxShadow: "0 4px 30px rgba(0, 0, 0, 0.1)"
+    background: "#ffffff",
+    borderRadius: "14px",
+    border: "1px solid #dbe6ef",
+    boxShadow: "0 8px 24px rgba(30,72,104,0.07)"
 };
 
 export default function AdminDashboard() {
@@ -137,12 +136,12 @@ const SectionHeader = ({ title, subtitle, color }) => (
     animate={{ opacity: 1, y: 0 }}
     transition={{ delay: 0.1 }}
     style={{
-      background: color || "linear-gradient(135deg, #3b82f6 0%, #2563eb 100%)",
+      background: "#1769aa",
       borderRadius: "16px",
       padding: "2rem",
       marginBottom: "2rem",
       color: "white",
-      boxShadow: "0 10px 40px rgba(59, 130, 246, 0.3)",
+      boxShadow: "0 10px 28px rgba(23,105,170,.16)",
     }}
   >
     <h1 style={{ fontSize: "2rem", fontWeight: 800, marginBottom: "0.5rem" }}>{title}</h1>

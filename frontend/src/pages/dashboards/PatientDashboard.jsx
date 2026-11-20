@@ -519,13 +519,12 @@ export default function PatientDashboard() {
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.1 }}
                 style={{
-                  background:
-                    "linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%)",
+                  background: "#1769aa",
                   borderRadius: "16px",
                   padding: "2rem",
                   marginBottom: "2rem",
                   color: "white",
-                  boxShadow: "0 10px 40px rgba(59, 130, 246, 0.3)",
+                  boxShadow: "0 10px 28px rgba(23,105,170,.16)",
                 }}
               >
                 <h1
