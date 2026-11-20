@@ -20,7 +20,7 @@ import {
   TranslateRounded,
   TextIncreaseRounded,
 } from "@mui/icons-material";
-import { API_BASE_URL, authHeaders } from "../lib/api";
+import { API_BASE_URL } from "../lib/api";
 import "./LandingPage.css";
 
 const departments = [
@@ -88,7 +88,7 @@ export default function LandingPage() {
   }, [largeText]);
 
   useEffect(() => {
-    fetch(`${API_BASE_URL}/auth/users?role=doctor`, { headers: authHeaders() })
+    fetch(`${API_BASE_URL}/auth/doctors`)
       .then((response) => response.ok ? response.json() : [])
       .then((data) => setDoctors(Array.isArray(data) ? data.slice(0, 3) : []))
       .catch(() => setDoctors([]))

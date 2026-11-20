@@ -186,6 +186,21 @@ def update_user_profile(username: str, update_data: UserUpdate, db: Session = De
         "specialization": user.specialization
     }}
 
+@router.get("/doctors")
+def get_public_doctors(db: Session = Depends(get_db)):
+    """Public, non-sensitive directory of registered doctors."""
+    doctors = db.query(User).filter(
+        User.role == UserRole.doctor,
+        User.is_active.is_(True),
+    ).all()
+    return [
+        {
+            "username": doctor.username,
+            "specialization": doctor.specialization,
+        }
+        for doctor in doctors
+    ]
+
 @router.get("/users")
 def get_users(role: Optional[str] = None, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
     """Get all users, optionally filtered by role"""

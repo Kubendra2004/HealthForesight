@@ -11,6 +11,9 @@ import {
   ListItemText,
   Tooltip,
   Typography,
+  Badge,
+  Snackbar,
+  Alert,
 } from "@mui/material";
 import MenuRoundedIcon from "@mui/icons-material/MenuRounded";
 import ChevronLeftRoundedIcon from "@mui/icons-material/ChevronLeftRounded";
@@ -23,9 +26,10 @@ import ReceiptLongRoundedIcon from "@mui/icons-material/ReceiptLongRounded";
 import BedRoundedIcon from "@mui/icons-material/BedRounded";
 import SettingsRoundedIcon from "@mui/icons-material/SettingsRounded";
 import MonitorHeartRoundedIcon from "@mui/icons-material/MonitorHeartRounded";
+import NotificationsNoneRoundedIcon from "@mui/icons-material/NotificationsNoneRounded";
+import LocalHospitalRoundedIcon from "@mui/icons-material/LocalHospitalRounded";
 import { useAuth } from "../../context/AuthContext";
 import { useWebSocket } from "../../context/WebSocketContext";
-import CarePulse from "../ui/CarePulse";
 import CommandPalette from "./CommandPalette";
 import "./DashboardShell.css";
 
@@ -64,9 +68,10 @@ const navByRole = {
 export default function DashboardLayout({ children, title, role }) {
   const navigate = useNavigate();
   const { user, logout } = useAuth();
-  const { isConnected } = useWebSocket();
+  const { isConnected, lastMessage } = useWebSocket();
   const [collapsed, setCollapsed] = useState(false);
   const [paletteOpen, setPaletteOpen] = useState(false);
+  const [toast, setToast] = useState(null);
   const displayName = user?.name || user?.username || "Account";
   const navItems = navByRole[role] || navByRole.patient;
 
@@ -81,6 +86,16 @@ export default function DashboardLayout({ children, title, role }) {
     return () => window.removeEventListener("keydown", handleShortcut);
   }, []);
 
+  useEffect(() => {
+    if (!lastMessage) return;
+    const label = lastMessage.type === "bed_update"
+      ? `Bed ${lastMessage.data?.bed_id || ""} changed to ${lastMessage.data?.status || "updated"}`
+      : lastMessage.type === "new_appointment"
+        ? "A new appointment request is waiting"
+        : "A new live update is available";
+    setToast(label);
+  }, [lastMessage]);
+
   const handleNav = (id) => window.dispatchEvent(new CustomEvent("hf-command", { detail: id }));
 
   const handleLogout = () => {
@@ -92,7 +107,7 @@ export default function DashboardLayout({ children, title, role }) {
     <Box className={`dashboard-shell ${collapsed ? "is-collapsed" : ""}`}>
       <aside className="dashboard-sidebar">
         <div className="sidebar-brand">
-          <CarePulse size={38} pulse={isConnected} />
+          <span className="sidebar-brand-mark"><LocalHospitalRoundedIcon /></span>
           {!collapsed && <Typography component="span">Health<span>Foresight</span></Typography>}
           <IconButton className="sidebar-collapse" aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"} onClick={() => setCollapsed((value) => !value)}>
             {collapsed ? <MenuRoundedIcon /> : <ChevronLeftRoundedIcon />}
@@ -127,13 +142,19 @@ export default function DashboardLayout({ children, title, role }) {
       <div className="dashboard-main">
         <header className="dashboard-topbar">
           <div>
+            <div className="dashboard-breadcrumb">HealthForesight / {roleLabels[role]}</div>
             <Typography component="h1">{title || roleLabels[role]}</Typography>
-            <span className="connection-state"><i className={isConnected ? "is-live" : ""} />{isConnected ? "Live" : "Offline"}</span>
+            <span className="connection-state"><i className={isConnected ? "is-live" : ""} />{isConnected ? "Live updates" : "Updates unavailable"}</span>
           </div>
-          <Button className="command-trigger" variant="outlined" startIcon={<SearchRoundedIcon />} onClick={() => setPaletteOpen(true)}>
-            <span>Search or jump</span>
-            <kbd>Ctrl K</kbd>
-          </Button>
+          <div className="topbar-actions">
+            <Button className="command-trigger" variant="outlined" startIcon={<SearchRoundedIcon />} onClick={() => setPaletteOpen(true)}>
+              <span>Search or jump</span>
+              <kbd>Ctrl K</kbd>
+            </Button>
+            <IconButton className="notification-button" aria-label="Notifications">
+              <Badge color="primary" variant="dot"><NotificationsNoneRoundedIcon /></Badge>
+            </IconButton>
+          </div>
         </header>
         <main className="dashboard-content">{children}</main>
       </div>
@@ -147,6 +168,9 @@ export default function DashboardLayout({ children, title, role }) {
       </nav>
 
       <CommandPalette open={paletteOpen} onClose={() => setPaletteOpen(false)} role={role} />
+      <Snackbar open={Boolean(toast)} autoHideDuration={4000} onClose={() => setToast(null)} anchorOrigin={{ vertical:"bottom", horizontal:"right" }}>
+        <Alert severity="info" variant="filled" onClose={() => setToast(null)} sx={{ width:"100%" }}>{toast}</Alert>
+      </Snackbar>
     </Box>
   );
 }
