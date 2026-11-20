@@ -55,9 +55,8 @@ const BedManagement2D = ({ beds, onBedClick, selectedBedId }) => {
                                                     p: 2, 
                                                     cursor: 'pointer',
                                                     borderRadius: 3,
-                                                    border: isSelected ? '2px solid #6366f1' : '1px solid transparent',
-                                                    bgcolor: isSelected ? 'rgba(99, 102, 241, 0.05)' : 'rgba(255, 255, 255, 0.8)',
-                                                    backdropFilter: 'blur(10px)',
+                                                    border: isSelected ? '2px solid #1769aa' : '1px solid #dbe6ef',
+                                                    bgcolor: isSelected ? '#edf5fb' : '#ffffff',
                                                     transition: 'all 0.3s ease',
                                                     position: 'relative',
                                                     overflow: 'hidden'

@@ -1266,9 +1266,8 @@ const RiskCard = ({ title, icon, value, level, colorProp, sub, delay }) => (
         style={{
           marginTop: "1.5rem",
           padding: "1rem",
-          background: "rgba(255,255,255,0.8)",
+          background: "#edf5fb",
           borderRadius: "12px",
-          backdropFilter: "blur(10px)",
         }}
       >
         <p

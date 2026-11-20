@@ -58,7 +58,7 @@ export default function AdminDashboard() {
     return (
         <Box sx={{ 
             position: 'fixed', bottom: 30, left: '50%', transform: 'translateX(-50%)', 
-            bgcolor: 'rgba(255, 255, 255, 0.8)', backdropFilter: 'blur(16px)',
+            bgcolor: '#ffffff',
             borderRadius: 50, p: 0.75, display: 'flex', gap: 0.5,
             boxShadow: '0 10px 40px rgba(0,0,0,0.1)', zIndex: 1000,
             border: '1px solid rgba(255,255,255,0.5)'

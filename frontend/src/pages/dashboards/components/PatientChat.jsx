@@ -391,8 +391,7 @@ const PatientChat = ({ patientId }) => {
           sx={{
             p: 2.25,
             borderTop: '1px solid #e3ebf4',
-            bgcolor: 'rgba(255,255,255,0.95)',
-            backdropFilter: 'blur(12px)',
+            bgcolor: '#ffffff',
             position: 'sticky',
             bottom: 0,
             zIndex: 2
