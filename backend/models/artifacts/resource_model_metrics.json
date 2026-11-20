@@ -1,0 +1,102 @@
+{
+  "beds": {
+    "validation_status": "rolling_origin_development_cv",
+    "observations": 719,
+    "cv_predictions": 70,
+    "initial_window": "450 days",
+    "horizon": "7 days",
+    "prophet": {
+      "mae": 13.43496489006085,
+      "rmse": 17.35470512582712,
+      "mape_nonzero_actual": 0.028854834784250157,
+      "smape": 0.02897002490954254
+    },
+    "last_observation_baseline": {
+      "mae": 19.47142857142857,
+      "rmse": 23.597518029294037,
+      "mape_nonzero_actual": 0.041927939498062367,
+      "smape": 0.042066973726524556
+    },
+    "mae_improvement_over_baseline": 0.3100164766659871
+  },
+  "icu": {
+    "validation_status": "rolling_origin_development_cv",
+    "observations": 719,
+    "cv_predictions": 70,
+    "initial_window": "450 days",
+    "horizon": "7 days",
+    "prophet": {
+      "mae": 4.056830305742251,
+      "rmse": 4.9862065068029455,
+      "mape_nonzero_actual": 0.04753387460245325,
+      "smape": 0.04764880932952193
+    },
+    "last_observation_baseline": {
+      "mae": 7.0,
+      "rmse": 8.525591726426635,
+      "mape_nonzero_actual": 0.08161624661356467,
+      "smape": 0.08269482575026078
+    },
+    "mae_improvement_over_baseline": 0.42045281346539276
+  },
+  "oxygen": {
+    "validation_status": "rolling_origin_development_cv",
+    "observations": 719,
+    "cv_predictions": 70,
+    "initial_window": "450 days",
+    "horizon": "7 days",
+    "prophet": {
+      "mae": 12.2506323387274,
+      "rmse": 15.5437246230227,
+      "mape_nonzero_actual": 0.02592387407687523,
+      "smape": 0.02597246026000463
+    },
+    "last_observation_baseline": {
+      "mae": 18.742857142857144,
+      "rmse": 22.85669642421169,
+      "mape_nonzero_actual": 0.039565331874737986,
+      "smape": 0.03973210665714302
+    },
+    "mae_improvement_over_baseline": 0.3463839453422882
+  },
+  "er_visits": {
+    "validation_status": "rolling_origin_development_cv",
+    "observations": 719,
+    "cv_predictions": 70,
+    "initial_window": "450 days",
+    "horizon": "7 days",
+    "prophet": {
+      "mae": 7.631384784590382,
+      "rmse": 9.69136876635417,
+      "mape_nonzero_actual": 0.046883347100965755,
+      "smape": 0.046493531377286235
+    },
+    "last_observation_baseline": {
+      "mae": 12.214285714285714,
+      "rmse": 15.144541685278655,
+      "mape_nonzero_actual": 0.07422322270770818,
+      "smape": 0.07480939923889257
+    },
+    "mae_improvement_over_baseline": 0.3752082632499102
+  },
+  "occupancy_rate": {
+    "validation_status": "rolling_origin_development_cv",
+    "observations": 719,
+    "cv_predictions": 70,
+    "initial_window": "450 days",
+    "horizon": "7 days",
+    "prophet": {
+      "mae": 0.019120108171318317,
+      "rmse": 0.02478634494361806,
+      "mape_nonzero_actual": 0.02249733703768482,
+      "smape": 0.02240171700206769
+    },
+    "last_observation_baseline": {
+      "mae": 0.03200000000000001,
+      "rmse": 0.03909694909544002,
+      "mape_nonzero_actual": 0.037432992216671186,
+      "smape": 0.03759609010988757
+    },
+    "mae_improvement_over_baseline": 0.4024966196463027
+  }
+}

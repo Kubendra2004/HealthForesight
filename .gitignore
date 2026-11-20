@@ -1,0 +1,34 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+venv/
+.env
+
+# Logs
+*.log
+backend/logs/
+backend/uploads/
+backend/*.db
+
+# Chroma DB (Vector Store)
+backend/chroma_db/
+
+# Node
+node_modules/
+dist/
+.DS_Store
+
+# Editors
+.vscode/
+.idea/
+
+# Markdown files (except specific ones)
+*.md
+!README.md
+!api_endpoints.md
+!model_performance.md
+
+#exe
+cloudflared.exe
+ngrok-multi.yml

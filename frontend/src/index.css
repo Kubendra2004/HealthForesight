@@ -299,11 +299,11 @@ p {
   :root {
     --section-padding: 60px;
   }
-  
+
   .container {
     padding: 0 1rem;
   }
-  
+
   p {
     font-size: 1rem;
   }

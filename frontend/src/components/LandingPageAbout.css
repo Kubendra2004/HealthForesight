@@ -1,0 +1,57 @@
+/* About Section Styles */
+.about-section {
+  padding: var(--section-padding) 0;
+  position: relative;
+  z-index: var(--z-content);
+  background: var(--bg-section);
+}
+
+.about-content {
+  display: grid;
+  grid-template-columns: 1.2fr 1fr;
+  gap: 4rem;
+  align-items: start;
+}
+
+.about-text h2 {
+  margin-bottom: 2rem;
+}
+
+.about-text p {
+  margin-bottom: 1.5rem;
+  line-height: 1.8;
+}
+
+.about-highlights {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.highlight-item {
+  padding: 2rem;
+  text-align: center;
+  transition: all var(--transition-normal);
+}
+
+.highlight-item:hover {
+  transform: translateX(10px);
+}
+
+.highlight-item h3 {
+  font-size: 1.25rem;
+  margin: 1rem 0 0.5rem;
+}
+
+.highlight-item p {
+  font-size: 0.875rem;
+  color: var(--text-secondary);
+  margin: 0;
+}
+
+@media (max-width: 768px) {
+  .about-content {
+    grid-template-columns: 1fr;
+    gap: 2rem;
+  }
+}
