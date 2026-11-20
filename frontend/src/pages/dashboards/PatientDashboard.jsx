@@ -32,6 +32,7 @@ import TodayStrip from "../../components/ui/TodayStrip";
 import VoiceOrb from "../../components/ui/VoiceOrb";
 import ActivityFeed from "../../components/ui/ActivityFeed";
 import RiskWhyPanel from "../../components/ui/RiskWhyPanel";
+import HealthStory from "../../components/ui/HealthStory";
 
 ChartJS.register(
   CategoryScale,
@@ -541,6 +542,15 @@ export default function PatientDashboard() {
                 </p>
               </motion.div>
 
+              <Grid container spacing={2} mb={3}>
+                <Grid item xs={12}>
+                  <HealthStory
+                    appointments={appointments}
+                    onBook={() => setShowAppointmentModal(true)}
+                    onAsk={() => setChatOpen(true)}
+                  />
+                </Grid>
+              </Grid>
               <Grid container spacing={2} mb={3}>
                 <Grid item xs={12} md={6}>
                   <RiskWhyPanel
