@@ -34,6 +34,9 @@ import RiskCalculators from './components/RiskCalculators';
 import ResourceUpdateModal from './components/ResourceUpdateModal';
 import BedActionModal from './components/BedActionModal';
 import BillProcessingModal from './components/BillProcessingModal';
+import TodayStrip from "../../components/ui/TodayStrip";
+import ForecastHorizon from "../../components/ui/ForecastHorizon";
+import ActivityFeed from "../../components/ui/ActivityFeed";
 
 // Glassmorphism styles
 const glassCard = {
@@ -453,6 +456,35 @@ const FrontdeskDashboard = () => {
           </Grid>
         </Grid>
 
+        <Grid container spacing={3} mb={4}>
+          <Grid item xs={12} md={8}>
+            <ForecastHorizon
+              data={Array.isArray(resources?.forecast) ? resources.forecast.map((point, index) => ({
+                label: point.label || point.date || `Day ${index + 1}`,
+                value: point.beds ?? point.value ?? 0,
+              })) : []}
+              threshold={resources?.bed_warning_threshold}
+              title="Bed forecast horizon"
+            />
+          </Grid>
+          <Grid item xs={12} md={4}>
+            <ActivityFeed items={[
+              ...appointments.slice(0, 3).map((appointment) => ({
+                title: `${appointment.patient_id} appointment`,
+                detail: appointment.status,
+                status: appointment.status,
+                tone: appointment.status === "Requested" ? "warning" : "stable",
+              })),
+              ...beds.filter((bed) => bed.status === "Needs Cleaning").slice(0, 2).map((bed) => ({
+                title: `Bed ${bed.bed_id || bed._id}`,
+                detail: "Cleaning required",
+                status: "Attention",
+                tone: "critical",
+              })),
+            ]} />
+          </Grid>
+        </Grid>
+
         <Typography variant="h5" fontWeight="800" mb={2}>Quick Actions</Typography>
         <Grid container spacing={2} mb={4}>
           {[
@@ -848,6 +880,11 @@ const FrontdeskDashboard = () => {
 
   return (
     <DashboardLayout title="Front desk" role="frontdesk">
+    <TodayStrip items={[
+      { count: appointments.filter((item) => item.status === "Requested").length, label: "appointments to review", tone: "warning", onClick: () => setActiveTab("appointments") },
+      { count: beds.filter((bed) => bed.status === "Available").length, label: "beds available", tone: "stable", onClick: () => setActiveTab("beds") },
+      { count: inventory.filter((item) => Number(item.quantity ?? 0) <= Number(item.minimum_stock ?? 10)).length, label: "low-stock alerts", tone: "critical", onClick: () => setActiveTab("operations") },
+    ]} />
     <Box sx={{ minHeight: 'calc(100vh - 100px)', background: 'transparent', pb: 12 }}>
       <Snackbar open={snackbar.open} autoHideDuration={4000} onClose={() => setSnackbar({ ...snackbar, open: false })}>
         <Alert severity={snackbar.severity}>{snackbar.message}</Alert>

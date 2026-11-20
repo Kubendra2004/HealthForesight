@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { Box, Snackbar, Alert } from "@mui/material";
+import { Box, Snackbar, Alert, Grid } from "@mui/material";
 import { motion, AnimatePresence } from "framer-motion";
 import DashboardLayout from "../../components/layout/DashboardLayout";
 import PatientResourceForecast from "./components/PatientResourceForecast";
@@ -28,6 +28,10 @@ import {
 import { Tooltip } from "@mui/material";
 import axios from "axios";
 import { API_BASE_URL, authHeaders } from '../../lib/api';
+import TodayStrip from "../../components/ui/TodayStrip";
+import VoiceOrb from "../../components/ui/VoiceOrb";
+import ActivityFeed from "../../components/ui/ActivityFeed";
+import RiskWhyPanel from "../../components/ui/RiskWhyPanel";
 
 ChartJS.register(
   CategoryScale,
@@ -420,6 +424,15 @@ export default function PatientDashboard() {
 
   return (
     <DashboardLayout title="Patient Dashboard" role="patient">
+      <TodayStrip items={[
+        { count: appointments.filter((item) => item.status === "Requested").length, label: "appointments awaiting review", tone: "warning", onClick: () => setActive("appointments") },
+        { count: heartPrediction?.prediction === 1 || diabetesPrediction?.prediction === 1 ? 1 : 0, label: "model output to review", tone: "info", onClick: () => setActive("dashboard") },
+      ]} />
+      <VoiceOrb
+        transcript={chatOpen ? "Your care context is ready for the assistant." : ""}
+        contextShared={Boolean(chatPartner)}
+        onContextChange={(shared) => setChatPartner(shared ? { username: "current-patient" } : null)}
+      />
       {/* Main Content Container with overflow fix */}
       <Box
         sx={{
@@ -527,6 +540,28 @@ export default function PatientDashboard() {
                   Here's your health overview
                 </p>
               </motion.div>
+
+              <Grid container spacing={2} mb={3}>
+                <Grid item xs={12} md={6}>
+                  <RiskWhyPanel
+                    title="Your model output drivers"
+                    factors={[
+                      profileData?.smoking === "Yes" ? { label: "Smoking status", value: 80, direction: "up" } : null,
+                      profileData?.activity_level === "Sedentary" ? { label: "Low activity", value: 65, direction: "up" } : null,
+                      Number(profileData?.systolic_bp) > 140 ? { label: "Elevated systolic pressure", value: 72, direction: "up" } : null,
+                      Number(profileData?.glucose) > 140 ? { label: "Elevated glucose", value: 68, direction: "up" } : null,
+                    ].filter(Boolean)}
+                  />
+                </Grid>
+                <Grid item xs={12} md={6}>
+                  <ActivityFeed items={appointments.slice(0, 4).map((appointment) => ({
+                    title: appointment.reason || "Appointment",
+                    detail: appointment.date ? new Date(appointment.date).toLocaleString() : "Date unavailable",
+                    status: appointment.status,
+                    tone: appointment.status === "Cancelled" || appointment.status === "Rejected" ? "critical" : appointment.status === "Requested" ? "warning" : "stable",
+                  }))} />
+                </Grid>
+              </Grid>
 
               {/* Risk Cards */}
               <div

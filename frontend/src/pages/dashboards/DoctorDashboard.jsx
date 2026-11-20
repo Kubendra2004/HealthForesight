@@ -26,6 +26,9 @@ import { useWebSocket } from '../../context/WebSocketContext';
 import ChatInterface from '../../components/ChatInterface';
 import VoiceInput from '../../components/VoiceInput';
 import { motion, AnimatePresence } from 'framer-motion';
+import TodayStrip from "../../components/ui/TodayStrip";
+import RiskWhyPanel from "../../components/ui/RiskWhyPanel";
+import ActivityFeed from "../../components/ui/ActivityFeed";
 
 // --- Assets & Styles ---
 const glassCard = {
@@ -1375,6 +1378,10 @@ const DoctorDashboard = () => {
 
   return (
     <DashboardLayout title="Doctor dashboard" role="doctor">
+    <TodayStrip items={[
+      { count: appointments.filter((item) => item.status === "Requested").length, label: "appointment requests", tone: "warning" },
+      { count: patients?.length || 0, label: "assigned patients", tone: "info" },
+    ]} />
     <Box sx={{ minHeight: 'calc(100vh - 100px)', background: 'transparent', pb: 12, overflowX: 'hidden' }}>
         <Snackbar open={snackbar.open} autoHideDuration={3000} onClose={() => setSnackbar({ ...snackbar, open: false })}>
             <Alert severity="success">{snackbar.msg}</Alert>
@@ -1408,6 +1415,22 @@ const DoctorDashboard = () => {
                 {activeTab === 'home' && (
                     <motion.div key="home" initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 1.05 }}>
                         <Typography variant="h3" fontWeight="900" color="#312e81" mb={1}>Good Afternoon,</Typography>
+                        <Grid container spacing={2} sx={{ mb: 3 }}>
+                            <Grid item xs={12} md={6}>
+                                <RiskWhyPanel
+                                    title="Patient risk drivers"
+                                    factors={[]}
+                                />
+                            </Grid>
+                            <Grid item xs={12} md={6}>
+                                <ActivityFeed items={appointments.slice(0, 5).map((appointment) => ({
+                                    title: `${appointment.patient_id} appointment`,
+                                    detail: appointment.reason || "Care appointment",
+                                    status: appointment.status,
+                                    tone: appointment.status === "Requested" ? "warning" : "stable",
+                                }))} />
+                            </Grid>
+                        </Grid>
                         <Typography variant="h5" color="#6366f1" mb={4} fontWeight="500">Here is your daily rounds report.</Typography>
                         
                         <Grid container spacing={3} mb={6}>
