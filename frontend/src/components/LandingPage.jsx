@@ -1,296 +1,304 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import { motion, useReducedMotion } from "framer-motion";
-import { useInView } from "react-intersection-observer";
 import {
-  ArrowDownward,
-  ArrowForward,
-  ArrowOutward,
-  Favorite,
-  Hub,
-  Insights,
-  Menu,
-  MonitorHeart,
-  ShieldOutlined,
-  SmartToy,
-  Today,
-  TrendingUp,
-  VolunteerActivism,
-  Close,
+  CalendarMonthRounded,
+  MicRounded,
+  MonitorHeartRounded,
+  DescriptionRounded,
+  EmergencyRounded,
+  PhoneRounded,
+  AccessTimeRounded,
+  ChevronRightRounded,
+  MenuRounded,
+  CloseRounded,
+  LocationOnRounded,
+  ShieldRounded,
+  CheckCircleRounded,
+  LocalHospitalRounded,
+  EventAvailableRounded,
+  GroupsRounded,
+  TranslateRounded,
+  TextIncreaseRounded,
 } from "@mui/icons-material";
+import { API_BASE_URL, authHeaders } from "../lib/api";
 import "./LandingPage.css";
 
-const IS_STATIC_SHOWCASE = import.meta.env.MODE === "pages";
+const departments = [
+  ["Cardiology", "Heart care", "Heart health and cardiac support"],
+  ["General Medicine", "Primary care", "Everyday health and ongoing concerns"],
+  ["Endocrinology", "Diabetes care", "Blood sugar and hormone support"],
+  ["Pulmonology", "Lung care", "Breathing and respiratory care"],
+  ["Neurology", "Brain care", "Nervous system and headache care"],
+  ["Orthopaedics", "Bone care", "Joint, bone and mobility care"],
+];
 
-const reveal = {
-  hidden: { opacity: 0, y: 28 },
-  visible: { opacity: 1, y: 0 },
-};
+function Brand() {
+  return (
+    <Link className="hospital-brand" to="/" aria-label="HealthForesight home">
+      <span className="hospital-brand-mark" aria-hidden="true"><LocalHospitalRounded /></span>
+      <span><strong>Health</strong><b>Foresight</b></span>
+    </Link>
+  );
+}
 
-const LandingPage = () => {
+function HospitalIllustration() {
+  return (
+    <svg className="hospital-illustration" viewBox="0 0 620 430" role="img" aria-label="Illustration of a welcoming hospital building and care team">
+      <defs>
+        <clipPath id="sky"><rect x="0" y="0" width="620" height="430" rx="28" /></clipPath>
+      </defs>
+      <g clipPath="url(#sky)">
+        <rect width="620" height="430" fill="#edf6fb" />
+        <circle cx="520" cy="82" r="46" fill="#dff3ef" />
+        <path d="M0 340C130 300 240 350 350 318C455 287 548 308 620 280V430H0Z" fill="#dcecf4" />
+        <rect x="142" y="140" width="336" height="210" rx="14" fill="#fff" stroke="#b8d1e2" strokeWidth="3" />
+        <rect x="212" y="82" width="196" height="268" rx="12" fill="#fff" stroke="#b8d1e2" strokeWidth="3" />
+        <rect x="287" y="54" width="46" height="46" rx="9" fill="#1769aa" />
+        <path d="M304 67V87M294 77H314" stroke="#fff" strokeWidth="7" strokeLinecap="round" />
+        <path d="M212 128H408M212 166H408M212 204H408M212 242H408M212 280H408" stroke="#e5eef5" strokeWidth="3" />
+        {[240,278,316,354,392].map((x) => (
+          <g key={x}>
+            <rect x={x} y="108" width="25" height="38" rx="4" fill="#d9ecf8" />
+            <rect x={x} y="146" width="25" height="38" rx="4" fill="#d9ecf8" />
+            <rect x={x} y="184" width="25" height="38" rx="4" fill="#d9ecf8" />
+          </g>
+        ))}
+        <rect x="278" y="300" width="64" height="50" rx="6" fill="#1769aa" />
+        <rect x="292" y="312" width="36" height="38" rx="18" fill="#edf6fb" />
+        <circle cx="115" cy="318" r="32" fill="#dff3ef" />
+        <circle cx="115" cy="308" r="13" fill="#f2c9ad" />
+        <path d="M88 350C91 329 138 329 142 350V360H88Z" fill="#12a594" />
+        <circle cx="502" cy="318" r="32" fill="#d9ecf8" />
+        <circle cx="502" cy="308" r="13" fill="#dba58a" />
+        <path d="M475 350C478 329 525 329 529 350V360H475Z" fill="#1769aa" />
+      </g>
+    </svg>
+  );
+}
+
+export default function LandingPage() {
   const [menuOpen, setMenuOpen] = useState(false);
-  const [scrolled, setScrolled] = useState(false);
+  const [largeText, setLargeText] = useState(false);
+  const [doctors, setDoctors] = useState([]);
+  const [doctorLoading, setDoctorLoading] = useState(true);
+  const [search, setSearch] = useState({ department: "", doctor: "", symptom: "" });
 
   useEffect(() => {
-    window.scrollTo(0, 0);
-    const updateNav = () => {
-      const hero = document.querySelector(".hero-section");
-      setScrolled(Boolean(hero && hero.getBoundingClientRect().bottom <= 84));
-    };
-    updateNav();
-    window.addEventListener("scroll", updateNav, { passive: true });
-    return () => window.removeEventListener("scroll", updateNav);
+    document.documentElement.style.fontSize = largeText ? "18px" : "";
+  }, [largeText]);
+
+  useEffect(() => {
+    fetch(`${API_BASE_URL}/auth/users?role=doctor`, { headers: authHeaders() })
+      .then((response) => response.ok ? response.json() : [])
+      .then((data) => setDoctors(Array.isArray(data) ? data.slice(0, 3) : []))
+      .catch(() => setDoctors([]))
+      .finally(() => setDoctorLoading(false));
   }, []);
 
   const closeMenu = () => setMenuOpen(false);
 
   return (
-    <main className="landing-page">
-      <Navigation
-        scrolled={scrolled}
-        menuOpen={menuOpen}
-        onToggle={() => setMenuOpen((open) => !open)}
-        onNavigate={closeMenu}
-      />
-      <HeroSection />
-      <PlatformSection />
-      <IntelligenceSection />
-      <PrinciplesSection />
-      <ContactSection />
-      <Footer />
-    </main>
-  );
-};
-
-function Navigation({ scrolled, menuOpen, onToggle, onNavigate }) {
-  return (
-    <header className={`site-header ${scrolled ? "is-scrolled" : ""}`}>
-      <nav className="site-nav" aria-label="Main navigation">
-        <Link className="brand" to="/" onClick={onNavigate} aria-label="HealthForesight home">
-          <span className="brand-mark" aria-hidden="true"><Favorite /></span>
-          <span className="brand-name">Health<span>Foresight</span></span>
-        </Link>
-
-        <button
-          className="mobile-menu-toggle"
-          type="button"
-          aria-label={menuOpen ? "Close navigation" : "Open navigation"}
-          aria-expanded={menuOpen}
-          onClick={onToggle}
-        >
-          {menuOpen ? <Close /> : <Menu />}
-        </button>
-
-        <div className={`nav-panel ${menuOpen ? "is-open" : ""}`}>
-          <div className="nav-links">
-            <a href="#platform" onClick={onNavigate}>Platform</a>
-            <a href="#intelligence" onClick={onNavigate}>Intelligence</a>
-            <a href="#approach" onClick={onNavigate}>Our approach</a>
+    <div className="hospital-site">
+      <div className="utility-bar">
+        <div className="utility-inner">
+          <div className="utility-links">
+            <span><EmergencyRounded /> Emergency: <b>Number placeholder</b></span>
+            <span><AccessTimeRounded /> Working hours: 24/7</span>
           </div>
-          <WorkspaceLink
-            className="nav-cta"
-            onNavigate={onNavigate}
-            staticContent={<>Explore <ArrowDownward fontSize="small" /></>}
-          >
-            Sign in <ArrowOutward fontSize="small" />
-          </WorkspaceLink>
-        </div>
-      </nav>
-    </header>
-  );
-}
-
-function HeroSection() {
-  const reduceMotion = useReducedMotion();
-  const updateSpotlight = (event) => {
-    if (reduceMotion || event.pointerType !== "mouse") return;
-    const bounds = event.currentTarget.getBoundingClientRect();
-    event.currentTarget.style.setProperty("--pointer-x", `${event.clientX - bounds.left}px`);
-    event.currentTarget.style.setProperty("--pointer-y", `${event.clientY - bounds.top}px`);
-  };
-
-  return (
-    <section className="hero-section hero-cinematic" aria-labelledby="hero-title" onPointerMove={updateSpotlight}>
-      <div className="hero-backdrop" aria-hidden="true"><div className="hero-spotlight" /><div className="hero-grid" /></div>
-      <div className="hero-container">
-        <motion.div className="hero-copy" initial={reduceMotion ? false : { opacity: 0, y: 36 }} animate={{ opacity: 1, y: 0 }} transition={reduceMotion ? { duration: 0 } : { duration: 1.15, ease: [0.22, 1, 0.36, 1] }}>
-          <div className="hero-eyebrow"><span className="eyebrow-pulse" /> A new perspective on care</div>
-          <motion.h1 id="hero-title" initial={reduceMotion ? false : { opacity: 0, y: 30, filter: "blur(12px)" }} animate={{ opacity: 1, y: 0, filter: "blur(0px)" }} transition={reduceMotion ? { duration: 0 } : { delay: 0.2, duration: 1.3, ease: [0.22, 1, 0.36, 1] }}>
-            Healthcare,<br /><em>in sync.</em>
-          </motion.h1>
-          <motion.p className="hero-description" initial={reduceMotion ? false : { opacity: 0, y: 18 }} animate={{ opacity: 1, y: 0 }} transition={reduceMotion ? { duration: 0 } : { delay: 0.55, duration: 0.85 }}>
-            A connected workspace for the people, decisions, and details that move care forward.
-          </motion.p>
-          <motion.div className="hero-actions" initial={reduceMotion ? false : { opacity: 0, y: 14 }} animate={{ opacity: 1, y: 0 }} transition={reduceMotion ? { duration: 0 } : { delay: 0.72, duration: 0.75 }}>
-            <a className="button button-primary" href="#platform">Explore the platform <ArrowForward /></a>
-            {!IS_STATIC_SHOWCASE && <Link className="button button-quiet" to="/login">Sign in <ArrowOutward /> </Link>}
-          </motion.div>
-          <div className="hero-footnote"><span className="hero-footnote-dot" /> A shared view for patients, care teams, and operations</div>
-        </motion.div>
-        <HeroConstellation reduceMotion={reduceMotion} />
-      </div>
-      <div className="hero-caption"><span>CARE, CONNECTED</span><span className="hero-caption-rule" /><span>PEOPLE AT THE CENTER</span><a href="#platform">Explore what connects it <ArrowDownward /></a></div>
-    </section>
-  );
-}
-
-function HeroConstellation({ reduceMotion }) {
-  return (
-    <motion.div className="hero-constellation" initial={reduceMotion ? false : { opacity: 0, scale: 0.88, rotate: -8 }} animate={{ opacity: 1, scale: 1, rotate: 0 }} transition={reduceMotion ? { duration: 0 } : { delay: 0.26, duration: 1.4, ease: [0.2, 0.75, 0.25, 1] }} aria-label="Illustration of connected care, clinical insight, and hospital operations">
-      <div className="constellation-glow" />
-      <div className="constellation-ring ring-outer" /><div className="constellation-ring ring-middle" /><div className="constellation-ring ring-inner" />
-      <svg className="constellation-lines" viewBox="0 0 600 600" aria-hidden="true">
-        <defs><linearGradient id="flowLine" x1="0" x2="1"><stop offset="0" stopColor="#7fffe0" stopOpacity="0" /><stop offset=".5" stopColor="#7fffe0" stopOpacity=".85" /><stop offset="1" stopColor="#b4ff8a" stopOpacity="0" /></linearGradient></defs>
-        <path d="M78 324 C150 323 143 170 246 190 S389 407 519 256" />
-        <path d="M105 464 C192 426 181 282 299 306 S408 151 500 140" />
-        <path d="M103 158 C197 218 177 417 312 409 S408 254 501 457" />
-      </svg>
-      <div className="constellation-core"><span className="core-halo" /><span className="core-symbol"><Favorite /></span><span className="core-label">HEALTH<br />FORESIGHT</span></div>
-      <div className="constellation-node node-care"><span className="node-symbol"><VolunteerActivism /></span><span className="node-copy"><b>Patient care</b><small>People, first</small></span><span className="node-live" /></div>
-      <div className="constellation-node node-insight"><span className="node-symbol"><Insights /></span><span className="node-copy"><b>Clinical insight</b><small>Context, connected</small></span></div>
-      <div className="constellation-node node-flow"><span className="node-symbol"><TrendingUp /></span><span className="node-copy"><b>Operations</b><small>Ready for what’s next</small></span></div>
-      <div className="constellation-spark spark-one" /><div className="constellation-spark spark-two" /><div className="constellation-spark spark-three" />
-      <div className="constellation-coordinate">HF—01 <span>CARE SYSTEM</span></div>
-    </motion.div>
-  );
-}
-
-const platformItems = [
-  {
-    number: "01",
-    icon: <VolunteerActivism />,
-    title: "Patient experience",
-    copy: "Appointments, records, and patient communication come together in a calmer, more accessible experience.",
-    tint: "mint",
-  },
-  {
-    number: "02",
-    icon: <MonitorHeart />,
-    title: "Clinical workspace",
-    copy: "Give care teams a focused place for patient context, appointments, and everyday clinical workflows.",
-    tint: "blue",
-  },
-  {
-    number: "03",
-    icon: <Insights />,
-    title: "Hospital operations",
-    copy: "Bring resource visibility and operational planning into the same connected system.",
-    tint: "violet",
-  },
-];
-
-function PlatformSection() {
-  const [ref, inView] = useInView({ threshold: 0.14, triggerOnce: true });
-  return (
-    <section id="platform" className="platform-section section-light" ref={ref}>
-      <div className="section-container">
-        <motion.div className="section-intro" initial="hidden" animate={inView ? "visible" : "hidden"} variants={reveal}>
-          <span className="section-eyebrow">ONE PLATFORM, MANY PERSPECTIVES</span>
-          <h2>Every part of care.<br /><span>Moving in the same direction.</span></h2>
-          <p>Purpose-built spaces for the people who make healthcare work—connected through a shared view of the patient journey.</p>
-        </motion.div>
-        <div className="platform-grid">
-          {platformItems.map((item, index) => (
-            <motion.article
-              className={`platform-card ${item.tint}`}
-              key={item.number}
-              initial="hidden"
-              animate={inView ? "visible" : "hidden"}
-              variants={reveal}
-              transition={{ delay: index * 0.12, duration: 0.6 }}
-            >
-              <div className="platform-card-top"><span className={`platform-icon ${item.tint}`}>{item.icon}</span><span className="platform-number">{item.number}</span></div>
-              <h3>{item.title}</h3>
-              <p>{item.copy}</p>
-              <span className="platform-card-line" />
-            </motion.article>
-          ))}
-        </div>
-        <div className="platform-ribbon"><span className="ribbon-mark"><Hub /></span><p>One connected experience, shaped around <strong>real people and real workflows.</strong></p><span className="ribbon-orbit" aria-hidden="true" /></div>
-      </div>
-    </section>
-  );
-}
-
-function IntelligenceSection() {
-  const [ref, inView] = useInView({ threshold: 0.12, triggerOnce: true });
-  return (
-    <section id="intelligence" className="intelligence-section" ref={ref}>
-      <div className="intelligence-glow" aria-hidden="true" />
-      <div className="section-container intelligence-layout">
-        <motion.div className="intelligence-visual" initial="hidden" animate={inView ? "visible" : "hidden"} variants={reveal}>
-          <div className="orbit orbit-one" /><div className="orbit orbit-two" />
-          <div className="intelligence-core"><span className="core-icon"><SmartToy /></span><span>Human-led<br />intelligence</span></div>
-          <div className="orbit-node node-one"><Insights /></div>
-          <div className="orbit-node node-two"><MonitorHeart /></div>
-          <div className="orbit-node node-three"><Today /></div>
-          <span className="intelligence-visual-caption">Care context <i /> thoughtful insight <i /> next step</span>
-        </motion.div>
-        <motion.div className="intelligence-copy" initial="hidden" animate={inView ? "visible" : "hidden"} variants={reveal} transition={{ delay: 0.1, duration: 0.6 }}>
-          <span className="section-eyebrow">TECHNOLOGY WITH PERSPECTIVE</span>
-          <h2>Insight is powerful.<br /><span>Context makes it useful.</span></h2>
-          <p>Explore healthcare data and operational patterns with tools designed to support people—not replace their judgment.</p>
-          <div className="capability-list">
-            <div className="capability-item"><span><Insights /></span><p><strong>Understand patterns</strong><small>Explore analytics across care and operations.</small></p><ArrowForward /></div>
-            <div className="capability-item"><span><TrendingUp /></span><p><strong>Plan with foresight</strong><small>Use resource forecasts to inform planning.</small></p><ArrowForward /></div>
-            <div className="capability-item"><span><SmartToy /></span><p><strong>Ask better questions</strong><small>Find helpful context through the assistant.</small></p><ArrowForward /></div>
+          <div className="utility-actions">
+            <button type="button" aria-label="Change language"><TranslateRounded /> English</button>
+            <button type="button" aria-pressed={largeText} onClick={() => setLargeText((value) => !value)} aria-label="Toggle larger text">
+              <TextIncreaseRounded /> Text size
+            </button>
           </div>
-          <p className="clinical-note"><ShieldOutlined /> Predictive model outputs are exploratory, informational, and not clinically validated. They are not a diagnosis or a substitute for professional judgment.</p>
-        </motion.div>
+        </div>
       </div>
-    </section>
+
+      <header className="hospital-header">
+        <nav className="hospital-nav" aria-label="Main navigation">
+          <Brand />
+          <button className="mobile-nav-toggle" type="button" aria-expanded={menuOpen} aria-label={menuOpen ? "Close navigation" : "Open navigation"} onClick={() => setMenuOpen((value) => !value)}>
+            {menuOpen ? <CloseRounded /> : <MenuRounded />}
+          </button>
+          <div className={`hospital-nav-links ${menuOpen ? "is-open" : ""}`}>
+            <a href="#departments" onClick={closeMenu}>Departments</a>
+            <a href="#doctors" onClick={closeMenu}>Doctors</a>
+            <a href="#services" onClick={closeMenu}>Services</a>
+            <Link to="/login" onClick={closeMenu}>Patient portal</Link>
+            <a href="#about" onClick={closeMenu}>About</a>
+            <a href="#contact" onClick={closeMenu}>Contact</a>
+          </div>
+          <div className="hospital-nav-actions">
+            <Link className="nav-login" to="/login">Login</Link>
+            <Link className="nav-book" to="/login">Book appointment</Link>
+          </div>
+        </nav>
+      </header>
+
+      <main>
+        <section className="hospital-hero" aria-labelledby="hospital-hero-title">
+          <div className="hospital-container hero-grid">
+            <div className="hero-copy">
+              <span className="hero-kicker"><CheckCircleRounded /> Patient care, made simpler</span>
+              <h1 id="hospital-hero-title">Trusted care for every stage of life.</h1>
+              <p>Find the right care, book a visit, and stay connected with your hospital team.</p>
+              <div className="hero-buttons">
+                <Link className="hospital-button primary" to="/login"><CalendarMonthRounded /> Book an appointment</Link>
+                <Link className="hospital-button secondary" to="/login">Patient portal <ChevronRightRounded /></Link>
+              </div>
+              <form className="quick-search" onSubmit={(event) => event.preventDefault()}>
+                <label>
+                  <span>Department</span>
+                  <select value={search.department} onChange={(event) => setSearch((value) => ({ ...value, department: event.target.value }))}>
+                    <option value="">Choose department</option>
+                    {departments.map(([name]) => <option key={name}>{name}</option>)}
+                  </select>
+                </label>
+                <label>
+                  <span>Doctor</span>
+                  <input value={search.doctor} onChange={(event) => setSearch((value) => ({ ...value, doctor: event.target.value }))} placeholder="Name" />
+                </label>
+                <label>
+                  <span>Symptom</span>
+                  <input value={search.symptom} onChange={(event) => setSearch((value) => ({ ...value, symptom: event.target.value }))} placeholder="What are you feeling?" />
+                </label>
+                <button type="submit" aria-label="Search care"><ChevronRightRounded /></button>
+              </form>
+            </div>
+            <HospitalIllustration />
+          </div>
+        </section>
+
+        <section className="quick-actions" aria-label="Quick actions">
+          <div className="hospital-container quick-grid">
+            {[
+              [<CalendarMonthRounded />, "Book appointment", "Choose a department and time"],
+              [<MicRounded />, "Ask the assistant", "Get spoken or typed help"],
+              [<MonitorHeartRounded />, "Check health risk", "View optional health results"],
+              [<DescriptionRounded />, "View records", "Prescriptions and care history"],
+              [<EmergencyRounded />, "Emergency", "Contact emergency services"],
+            ].map(([icon, title, copy], index) => (
+              <Link className={`quick-card ${index === 4 ? "emergency" : ""}`} to={index === 4 ? "#contact" : "/login"} key={title}>
+                <span>{icon}</span>
+                <b>{title}</b>
+                <small>{copy}</small>
+              </Link>
+            ))}
+          </div>
+        </section>
+
+        <section className="hospital-section" id="departments">
+          <div className="hospital-container">
+            <div className="section-heading">
+              <div><span>Our departments</span><h2>Care for the whole you.</h2></div>
+              <Link to="/login">View appointment options <ChevronRightRounded /></Link>
+            </div>
+            <div className="department-grid">
+              {departments.map(([name, label, copy]) => (
+                <Link className="department-card" to="/login" key={name}>
+                  <span className="department-icon"><MonitorHeartRounded /></span>
+                  <small>{label}</small>
+                  <h3>{name}</h3>
+                  <p>{copy}</p>
+                  <b>Book a visit <ChevronRightRounded /></b>
+                </Link>
+              ))}
+            </div>
+          </div>
+        </section>
+
+        <section className="hospital-section doctors-section" id="doctors">
+          <div className="hospital-container">
+            <div className="section-heading">
+              <div><span>Our care team</span><h2>Doctors at this hospital.</h2></div>
+              <Link to="/login">Find a doctor <ChevronRightRounded /></Link>
+            </div>
+            {doctorLoading ? (
+              <div className="doctor-grid"><div className="doctor-skeleton" /><div className="doctor-skeleton" /><div className="doctor-skeleton" /></div>
+            ) : doctors.length ? (
+              <div className="doctor-grid">
+                {doctors.map((doctor) => (
+                  <article className="doctor-card" key={doctor.username}>
+                    <div className="doctor-avatar" aria-hidden="true">{doctor.username?.[0]?.toUpperCase() || "D"}</div>
+                    <h3>{doctor.username}</h3>
+                    <p>{doctor.specialization || "Medical doctor"}</p>
+                    <Link to="/login">View availability <ChevronRightRounded /></Link>
+                  </article>
+                ))}
+              </div>
+            ) : (
+              <div className="designed-empty"><GroupsRounded /><h3>No doctors are listed yet</h3><p>The care team list will appear when doctor accounts are available.</p></div>
+            )}
+          </div>
+        </section>
+
+        <section className="hospital-section how-section" id="services">
+          <div className="hospital-container how-grid">
+            <div>
+              <span className="section-label">How it works</span>
+              <h2>A simpler care journey.</h2>
+              <ol className="steps">
+                <li><b>1</b><span><strong>Book</strong><small>Choose a department, doctor and convenient time.</small></span></li>
+                <li><b>2</b><span><strong>Consult</strong><small>Meet your care team and share only what you choose.</small></span></li>
+                <li><b>3</b><span><strong>Follow up</strong><small>View visits, prescriptions and next steps in one place.</small></span></li>
+              </ol>
+            </div>
+            <div className="smart-care">
+              <span className="section-label">Smart care</span>
+              <h2>Helpful technology, explained clearly.</h2>
+              <div className="smart-grid">
+                <article><MonitorHeartRounded /><h3>Health risk check</h3><p>Optional results explain factors that may need attention. They are not a diagnosis.</p></article>
+                <article><MicRounded /><h3>Accessible voice help</h3><p>Ask questions using typed or spoken text, with large reading options.</p></article>
+                <article><EventAvailableRounded /><h3>Planning support</h3><p>7-day resource forecasts help the hospital plan beds and oxygen.</p></article>
+                <article><LocalHospitalRounded /><h3>Live bed updates</h3><p>Care teams can see bed status changes as they happen.</p></article>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <section className="hospital-section safety-section" id="about">
+          <div className="hospital-container safety-grid">
+            <div className="privacy-illustration" aria-hidden="true">
+              <ShieldRounded />
+              <span><CheckCircleRounded /> Secure sign-in</span>
+              <span><CheckCircleRounded /> Sharing consent</span>
+            </div>
+            <div>
+              <span className="section-label">Patient safety and privacy</span>
+              <h2>Your information stays under your control.</h2>
+              <p>HealthForesight uses secure account sessions and role-based access. Voice and chat features show consent before patient context is shared.</p>
+              <ul><li>Secure JWT sign-in</li><li>Role-based patient and staff access</li><li>Clear consent indicators</li></ul>
+            </div>
+          </div>
+        </section>
+
+        <section className="hospital-section contact-section" id="contact">
+          <div className="hospital-container contact-grid">
+            <div>
+              <span className="section-label">Contact and location</span>
+              <h2>We’re here to help.</h2>
+              <p><PhoneRounded /> Phone: <b>Number placeholder</b></p>
+              <p><LocationOnRounded /> Address: <b>Location placeholder</b></p>
+              <p><AccessTimeRounded /> Hours: <b>24/7 emergency access; clinic hours may vary</b></p>
+            </div>
+            <div className="faq">
+              <details><summary>How do I book an appointment?</summary><p>Choose “Book appointment,” sign in, select a doctor and request an available time.</p></details>
+              <details><summary>Are health risk results a diagnosis?</summary><p>No. Model outputs are informational and must be reviewed with a qualified care professional.</p></details>
+              <details><summary>Can I access my records?</summary><p>Signed-in patients can review appointments, prescriptions and available health history in the patient portal.</p></details>
+            </div>
+          </div>
+        </section>
+      </main>
+
+      <footer className="hospital-footer">
+        <div className="hospital-container footer-grid">
+          <div><Brand /><p>Clear access to care, records and hospital services.</p></div>
+          <div><h3>Care</h3><a href="#departments">Departments</a><a href="#doctors">Doctors</a><Link to="/login">Appointments</Link></div>
+          <div><h3>Patient portal</h3><Link to="/login">Login</Link><Link to="/signup">Create account</Link><a href="#about">Privacy and consent</a></div>
+          <div><h3>Contact</h3><p>Number placeholder</p><p>Location placeholder</p></div>
+        </div>
+        <div className="hospital-container footer-bottom"><span>© {new Date().getFullYear()} HealthForesight</span><span>Personal hospital portal project</span></div>
+      </footer>
+    </div>
   );
 }
-
-function PrinciplesSection() {
-  const [ref, inView] = useInView({ threshold: 0.2, triggerOnce: true });
-  return (
-    <section id="approach" className="principles-section section-light" ref={ref}>
-      <motion.div className="principles-card" initial="hidden" animate={inView ? "visible" : "hidden"} variants={reveal}>
-        <div className="principles-mark"><Favorite /></div>
-        <div className="principles-copy"><span className="section-eyebrow">OUR NORTH STAR</span><h2>Technology should make care feel more human.</h2><p>HealthForesight brings the details into view so care teams can spend less energy navigating systems and more energy focused on people.</p></div>
-        <div className="principles-side"><div><span>Thoughtful by design</span><i>01</i></div><div><span>Connected by default</span><i>02</i></div><div><span>Human at the center</span><i>03</i></div></div>
-      </motion.div>
-    </section>
-  );
-}
-
-function ContactSection() {
-  return (
-    <section className="contact-section">
-      <div className="contact-glow" aria-hidden="true" />
-      <div className="section-container contact-content">
-        <span className="section-eyebrow">A BETTER VIEW STARTS HERE</span>
-        <h2>Make space for<br /><span>better care.</span></h2>
-        <p>Step into a more connected healthcare workspace.</p>
-        <a className="button button-light" href="#platform">Explore HealthForesight <ArrowForward /></a>
-      </div>
-      <div className="contact-decoration" aria-hidden="true"><div /><div /><div /></div>
-    </section>
-  );
-}
-
-function Footer() {
-  return (
-    <footer className="site-footer">
-      <div className="section-container footer-main">
-        <Link className="brand footer-brand" to="/">
-          <span className="brand-mark" aria-hidden="true"><Favorite /></span>
-          <span className="brand-name">Health<span>Foresight</span></span>
-        </Link>
-        <p className="footer-tagline">A clearer view of care.</p>
-        <div className="footer-links"><a href="https://github.com/Kubendra2004/HealthForesight" target="_blank" rel="noreferrer">GitHub <ArrowOutward /></a><a href="mailto:kubendra2004@gmail.com">Contact <ArrowOutward /></a>{!IS_STATIC_SHOWCASE && <Link to="/login">Sign in <ArrowOutward /></Link>}</div>
-      </div>
-      <div className="section-container footer-bottom"><span>© {new Date().getFullYear()} HealthForesight</span><span>Built for the people who care.</span></div>
-    </footer>
-  );
-}
-
-function WorkspaceLink({ className, children, staticContent, onNavigate }) {
-  if (IS_STATIC_SHOWCASE) {
-    return <a className={className} href="#platform" onClick={onNavigate}>{staticContent ?? children}</a>;
-  }
-  return <Link className={className} to="/login" onClick={onNavigate}>{children}</Link>;
-}
-
-export default LandingPage;
